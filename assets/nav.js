@@ -1,4 +1,4 @@
-(function(){var T=[{"n": 1, "slug": "motion", "zh": "运动的描述", "ja": "運動の表し方", "ready": true}, {"n": 2, "slug": "force", "zh": "力与运动定律", "ja": "力と運動の法則", "ready": true}, {"n": 3, "slug": "energy", "zh": "功与能量", "ja": "仕事とエネルギー", "ready": true}];
+(function(){var T=[{"n": 1, "slug": "motion", "zh": "运动的描述", "ja": "運動の表し方", "ready": true}, {"n": 2, "slug": "force", "zh": "力与运动定律", "ja": "力と運動の法則", "ready": true}, {"n": 3, "slug": "energy", "zh": "功与能量", "ja": "仕事とエネルギー", "ready": true}, {"n": 4, "slug": "momentum", "zh": "动量与冲量", "ja": "運動量と力積", "ready": true}, {"n": 5, "slug": "circular-shm", "zh": "圆周运动与简谐振动", "ja": "円運動・単振動", "ready": true}, {"n": 6, "slug": "gravitation", "zh": "万有引力", "ja": "万有引力", "ready": true}];
 var s=document.currentScript.src;var root=s.replace(/assets\/nav\.js.*$/,'');
 var here=location.pathname;
 var n=document.createElement('nav');n.className='eju-site-nav';
