@@ -1,4 +1,5 @@
 from _h import *
+from math import pi, sqrt
 TOPIC=dict(n=1,slug='motion',area='力学',zh='运动的描述',ja='運動の表し方',
 lead='速度・加速度、等加速度直线运动、自由落体与抛体运动。EJU 常考 v–t 图读图和抛体的时间・距离计算。',
 hero=[r'v=v_0+at',r'x=v_0t+\tfrac12at^2',r'v^2-v_0^2=2ax'],

@@ -1,4 +1,5 @@
 from _h import *
+from math import pi, sqrt
 from math import sqrt
 TOPIC=dict(n=6,slug='gravitation',area='力学',zh='万有引力',ja='万有引力',
 lead='开普勒定律、万有引力定律、人造卫星的速度与周期、第一宇宙速度・逃逸速度。',

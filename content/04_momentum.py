@@ -1,4 +1,5 @@
 from _h import *
+from math import pi, sqrt
 TOPIC=dict(n=4,slug='momentum',area='力学',zh='动量与冲量',ja='運動量と力積',
 lead='动量・冲量、动量守恒、碰撞与恢复系数（反発係数），以及碰撞中的动能损失。',
 hero=[r'\vec p=m\vec v',r'm\vec v\,\prime-m\vec v=\vec F\Delta t',r'e=-\frac{v_1\prime-v_2\prime}{v_1-v_2}'],

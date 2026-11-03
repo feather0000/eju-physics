@@ -1,4 +1,5 @@
 from _h import *
+from math import pi, sqrt
 TOPIC=dict(n=3,slug='energy',area='力学',zh='功与能量',ja='仕事とエネルギー',
 lead='功・功率、动能定理、势能（重力・弹性）、机械能守恒，以及摩擦做功时的能量收支。',
 hero=[r'W=Fx\cos\theta',r'\tfrac12mv^2-\tfrac12mv_0^2=W',r'\tfrac12mv^2+mgh=\text{一定}'],

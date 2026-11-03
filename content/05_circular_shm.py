@@ -1,4 +1,5 @@
 from _h import *
+from math import pi, sqrt
 TOPIC=dict(n=5,slug='circular-shm',area='力学',zh='圆周运动与简谐振动',ja='円運動・単振動',
 lead='匀速圆周运动的向心加速度・向心力，惯性力（离心力），简谐振动的周期，弹簧振子与单摆。',
 hero=[r'a=r\omega^2=\frac{v^2}{r}',r'T=2\pi\sqrt{\frac mk}',r'T=2\pi\sqrt{\frac Lg}'],

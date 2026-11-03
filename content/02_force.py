@@ -1,4 +1,5 @@
 from _h import *
+from math import pi, sqrt
 TOPIC=dict(n=2,slug='force',area='力学',zh='力与运动定律',ja='力と運動の法則',
 lead='力的合成・分解、力的平衡、牛顿三定律、摩擦力、斜面问题、浮力与压强。',
 hero=[r'm\vec a=\vec F',r'F_{\rm 最大}=\mu N',r'F=\rho Vg'],
