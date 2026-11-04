@@ -57,7 +57,7 @@ window.addEventListener('load',function(){{if(!window.renderMathInElement){{docu
 <script src="../../assets/nav.js"></script></body></html>'''
 for t in TOPICS:
     os.makedirs(f'topics/{t["slug"]}',exist_ok=True); open(f'topics/{t["slug"]}/index.html','w').write(page(t))
-lis=''.join(f'<li><a href="topics/{t["slug"]}/"><span class="n">{t["n"]} · {t["area"]}</span><b>{t["zh"]}</b><small>{t["ja"]} · {(str(len(t["problems"]))+" 题") if t["problems"] else "常用数据速查"}{(" · 过去问 "+str(t["bank"]["n"])+" 题 "+t["bank"]["stars"]) if t.get("bank") else ""}</small></a></li>' for t in TOPICS)
+lis=''.join(f'<li><a href="topics/{t["slug"]}/"><span class="n">{t["n"]} · {t["area"]}</span><b>{t["zh"]}</b><small>{t["ja"]} · {(str(len(t["problems"]))+" 题") if t["problems"] else t.get("sub","常用数据速查")}{(" · 过去问 "+str(t["bank"]["n"])+" 题 "+t["bank"]["stars"]) if t.get("bank") else ""}</small></a></li>' for t in TOPICS)
 RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td style="text-align:right">{t["bank"]["n"]}</td><td>{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
 open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>EJU 理科 物理 全专题讲解</title>
 <style>:root{{--bg:#f8f5ee;--fg:#222;--card:#fffdf8;--line:#ddd6c6;--acc:#1e6b6b}}@media(prefers-color-scheme:dark){{:root{{--bg:#14171e;--fg:#ebe8e0;--card:#1c2029;--line:#363c49;--acc:#79cfcf}}}}
@@ -75,3 +75,6 @@ nav[0]='(function(){var T='+json.dumps(T,ensure_ascii=False)+';'
 nav='\n'.join(nav).replace('EJU コース2 全部专题','EJU 物理 全部专题').replace("(t.n==19?'19–20':t.n)","t.n")
 open('assets/nav.js','w').write(nav)
 print(len(TOPICS),'topics',sum(len(t['problems']) for t in TOPICS),'problems')
+
+from _x import build_index
+print('search index entries:',build_index(TOPICS))
