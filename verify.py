@@ -10,4 +10,7 @@ for f in sorted(glob.glob('content/[0-9]*.py')):
         v=eval(p['calc']); vals=p['vals']; c=vals[p['ans']]
         ok=abs(v-c)<=0.02*(abs(c) or 1) and all(abs(x-c)>0.03*(abs(c) or 1) for j,x in enumerate(vals) if j!=p['ans'])
         if not ok: bad+=1; print('FAIL',t['slug'],k+1,v,vals,p['ans'])
+import subprocess
+r=subprocess.run(['node','tests/test_physics.js'],capture_output=True,text=True);print(r.stdout.strip())
+if r.returncode: bad+=1
 print(f'{n} problems, {n-nc} numerically verified, {nc} conceptual, {bad} failures'); sys.exit(1 if bad else 0)

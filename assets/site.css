@@ -211,3 +211,25 @@ table.freq td{vertical-align:middle}table.freq td.num{text-align:right;white-spa
 .fbar{display:block;height:10px;border-radius:5px;background:var(--accent);min-width:4px}.stars{color:var(--accent);letter-spacing:1px}
 ul.types{display:flex;flex-wrap:wrap;gap:6px 8px;padding:0;list-style:none}ul.types li{border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:14px}
 .origin.hf{color:var(--accent);font-weight:700}
+/* —— 互动演示 —— */
+.demo { margin: 22px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; max-width: 100%; }
+.demo > h3 { margin: 0; padding: 12px 16px 4px; font-size: 17px; }
+.demo > .demo-desc { margin: 0; padding: 0 16px 10px; color: var(--ink-3); font-size: 14px; }
+.demo-stage { position: relative; width: 100%; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); }
+.demo-stage canvas { display: block; width: 100%; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.demo-stage canvas.grab { cursor: grab; } .demo-stage canvas.grabbing { cursor: grabbing; }
+.demo-ctl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px 16px; padding: 12px 16px; align-items: end; }
+.demo-sl { display: flex; flex-direction: column; font-size: 14px; color: var(--ink-2); min-width: 0; }
+.demo-sl b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.demo-sl input[type=range] { width: 100%; min-height: 44px; margin: 0; accent-color: var(--accent); }
+.demo-seg { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; color: var(--ink-2); grid-column: 1 / -1; }
+.demo-seg > span { margin-right: 4px; }
+.demo-seg button, .demo-btn { min-height: 44px; padding: 6px 14px; border-radius: 22px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; touch-action: manipulation; }
+.demo-seg button[aria-pressed=true], .demo-btn[aria-pressed=true] { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.demo-out { padding: 4px 16px 14px; font-size: 14px; }
+.demo-out dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 4px 16px; margin: 0; }
+.demo-out dl div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; min-width: 0; flex-wrap: wrap; }
+.demo-out dt { color: var(--ink-3); } .demo-out dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.demo-out p { margin: 8px 0 0; color: var(--ink-2); }
+.demo:not(.demo-on) .demo-stage { aspect-ratio: 16 / 10; }
+.demo-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
