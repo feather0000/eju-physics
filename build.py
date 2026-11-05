@@ -27,6 +27,11 @@ def demosec(t):
     if not ds: return ''
     body=''.join(f'<div class="demo" data-demo="{k}" data-title="{zh}"><h3>{zh}</h3><p class="demo-desc">{jp}　{desc}</p></div>' for k,zh,jp,desc in ds)
     return f'<section id="demo"><h2>互动演示</h2><p class="jp-sub">インタラクティブ・デモ（可拖动・调参数；离开画面自动暂停）</p>{body}</section>'
+# DEMO-HOOK
+from _x import demo_hub
+TOPICS = [t for t in TOPICS if t['slug'] != 'demos']
+_k = next((i for i, t in enumerate(TOPICS) if not (t.get('bank') or t['problems'])), len(TOPICS))
+TOPICS.insert(_k, demo_hub(TOPICS, DEMOS))
 # TIPS-HOOK
 _TIPS = next((t.get('tips_data') for t in TOPICS if t.get('tips_data')), None)
 if _TIPS:
@@ -76,7 +81,7 @@ ol{{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fil
 .n{{color:var(--acc);font-weight:700;font-size:13px}}small{{opacity:.7}}a{{color:var(--acc)}}#theme{{font:inherit;min-height:44px;padding:4px 16px;border-radius:22px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}}td,th{{border-bottom:1px solid var(--line);padding:6px 8px}}</style>
 <script>try{{var t=localStorage.getItem('eju-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script></head><body><main>
 <h1>EJU 理科 物理 全专题讲解</h1><p>按 JASSO《日本留学試験 理科シラバス（物理）》编排：力学・热・波动・电磁气・原子。每页含要点讲解（中文 + 日语术语）、关键公式、原创例题和带解答的 EJU 风格选择题。</p>
-<p><button id="theme" type="button">切换深浅色</button></p><ol>{lis}</ol><h2>过去问出题频度排行</h2><p>依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计（各页开头有详细的「出题频度」表）。</p><div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">专题页</th><th style="text-align:left">原题册专题</th><th>题数</th><th>重要度</th></tr>{RANKTBL}</table></div><p><a href="https://feather0000.github.io/eju-calculus/">→ EJU 数学コース2 网站</a>　<a href="https://feather0000.github.io/eju-chemistry/">→ EJU 理科 化学 网站</a>　<a href="https://feather0000.github.io/eju-biology/">→ EJU 理科 生物 网站</a></p></main>
+<p><button id="theme" type="button">切换深浅色</button></p><p style="font-size:18px"><a href="topics/demos/">🎛️ 互动演示总览（{next(t["demo_count"] for t in TOPICS if t["slug"]=="demos")} 个）</a>　<a href="topics/tips/">⚡ 快速解题技巧</a></p><ol>{lis}</ol><h2>过去问出题频度排行</h2><p>依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计（各页开头有详细的「出题频度」表）。</p><div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">专题页</th><th style="text-align:left">原题册专题</th><th>题数</th><th>重要度</th></tr>{RANKTBL}</table></div><p><a href="https://feather0000.github.io/eju-calculus/">→ EJU 数学コース2 网站</a>　<a href="https://feather0000.github.io/eju-chemistry/">→ EJU 理科 化学 网站</a>　<a href="https://feather0000.github.io/eju-biology/">→ EJU 理科 生物 网站</a></p></main>
 <script>document.getElementById('theme').onclick=function(){{var d=document.documentElement,c=d.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),t=c==='dark'?'light':'dark';d.setAttribute('data-theme',t);try{{localStorage.setItem('eju-theme',t)}}catch(e){{}}}}</script><script src="assets/nav.js"></script></body></html>''')
 nav=open('/workspace/eju-pages/assets/nav.js').read().split('\n')
 T=[dict(n=t['n'],slug=t['slug'],zh=t['zh'],ja=t['ja'],ready=True) for t in TOPICS]
