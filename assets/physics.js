@@ -23,6 +23,27 @@
     else { f = -Math.sign(drive) * fmax; a = (drive + f) / (m1 + m2); }
     return { a: a, T: m2 * (g - a), f: f, N: m1 * g * Math.cos(th), state: a > 0 ? 'm2down' : a < 0 ? 'm2up' : 'static' };
   };
+  /* 运动中的斜面连接体：v 为沿“m2 下降”方向的速度；动摩擦力与运动方向相反。v=0 时同 P.incline */
+  P.inclineAt = function (m1, m2, th, mu, v, g) {
+    g = g || P.g; if (!v) return P.incline(m1, m2, th, mu, g);
+    var f = -Math.sign(v) * mu * m1 * g * Math.cos(th), a = (m2 * g - m1 * g * Math.sin(th) + f) / (m1 + m2);
+    return { a: a, T: m2 * (g - a), f: f, N: m1 * g * Math.cos(th), state: v > 0 ? 'm2down' : 'm2up', moving: true };
+  };
+  /* 一维滑动（等加速度分段精确积分）：aD 驱动加速度（不含摩擦），aF 摩擦减速度大小（静・动摩擦同值）。
+     速度过零的时刻精确停下，再按 |aD| ≤ aF 判断能否静止；返回 {x, v, a} */
+  P.slide1D = function (x, v, aD, aF, dt) {
+    for (var k = 0; k < 3 && dt > 0; k++) {
+      var a;
+      if (v === 0) {
+        if (Math.abs(aD) <= aF) return { x: x, v: 0, a: 0 };
+        a = aD - Math.sign(aD) * aF; return { x: x + 0.5 * a * dt * dt, v: a * dt, a: a };
+      }
+      a = aD - Math.sign(v) * aF;
+      if (a * v < 0 && -v / a < dt) { var ts = -v / a; x += v * ts + 0.5 * a * ts * ts; v = 0; dt -= ts; continue; }
+      return { x: x + v * dt + 0.5 * a * dt * dt, v: v + a * dt, a: a };
+    }
+    return { x: x, v: v, a: 0 };
+  };
   /* v–t 折线下的位移（梯形面积）；nodes = [[t,v],...] */
   P.vtX = function (nodes, t) {
     var x = 0;

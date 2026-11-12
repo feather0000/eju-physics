@@ -6,10 +6,10 @@ for f in sorted(glob.glob('content/[0-9]*.py')):
     s=importlib.util.spec_from_file_location(os.path.basename(f)[:-3],f); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); TOPICS.append(m.TOPIC)
 MARK='①②③④⑤⑥'
 DEMOS={
-'motion':[('vt','v–t 图构建器','v-tグラフ','拖动 v–t 图的折点，小车、x–t 图和位移面积同步变化。'),('proj','抛体运动','放物運動','拖动初速度箭头（或用滑块）改变初速与仰角，比较射程与最高点。')],
-'force':[('incline','斜面上的连接体','斜面と滑車でつながれた物体','改变质量、倾角和摩擦系数，看受力图、加速度与张力。')],
+'motion':[('vt','v–t 图构建器','v-tグラフ','拖动 v–t 图的折点，小车、x–t 图和位移面积同步变化；也可直接抓住小车推出去，实测 v–t / x–t。'),('proj','抛体运动','放物運動','拖动初速度箭头（或用滑块）改变初速与仰角，比较射程与最高点；也可直接抓住小球甩出去。')],
+'force':[('incline','斜面上的连接体','斜面と滑車でつながれた物体','改变质量、倾角和摩擦系数，看受力图、加速度与张力；可抓住物块或砝码推一下，看动摩擦下的运动。')],
 'energy':[('energy','曲面上的力学能','力学的エネルギー保存','拖动小球选择释放点；打开摩擦看力学能如何变成热。')],
-'momentum':[('collide','一维碰撞','1次元の衝突','调质量、速度和恢复系数 e，比较碰撞前后的动量与动能。')],
+'momentum':[('collide','一维碰撞','1次元の衝突','调质量、速度和恢复系数 e，比较碰撞前后的动量与动能；可直接抓住小球推出去碰撞。')],
 'circular-shm':[('shm','简谐振动与参考圆','単振動と等速円運動','弹簧振子与参考圆同步运动，下方画出 x–t 图。')],
 'gravitation':[('orbit','卫星轨道与宇宙速度','人工衛星の軌道','改变发射速度：圆、椭圆、抛物线、双曲线。')],
 'thermal':[('pv','p–V 循环绘制器','p-V図と熱サイクル','拖动状态点 A–D，逐段计算 W、ΔU、Q 与热效率。')],
@@ -58,7 +58,7 @@ def page(t):
     TE=f'''<section id="terms"><h2>术语对照</h2><p class="jp-sub">用語</p><div class="tw"><table><tr><th>中文</th><th>日本語</th><th>读法</th></tr>{terms}</table></div></section>''' if t['terms'] else ''
     return f'''<!DOCTYPE html><html lang="zh-CN"><head><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>EJU 理科 物理 · {t["n"]} {t["zh"]}</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/demos.js?v=1"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/demos.js?v=2"></script>
 <link rel="stylesheet" href="../../assets/site.css"><script>try{{var t=localStorage.getItem('eju-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
 <header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="../../">← 目录</a></p><p class="eyebrow">EJU 理科 物理 · {t["area"]} · {t["ja"]}</p><h1>{t["n"]} {t["zh"]}</h1><p class="lead">{t["lead"]}</p></div><div class="hero-formula" aria-hidden="true">{hero}</div></div></header>
