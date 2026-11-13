@@ -296,13 +296,13 @@
     c.lineWidth = 1.6; c.strokeStyle = '#555b66'; c.stroke();
     c.beginPath(); c.arc(x, y, r * 0.2, 0, 7); c.fillStyle = '#3a3e46'; c.fill(); c.restore();
   }
-  /* 地面/轨道：o.kind = 'floor'（实验台面 + 剖面线）| 'rail'（铝轨）| 'soil'（室外地面）；o.depth 厚度 px */
+  /* 地面/轨道：o.kind = 'floor'（实验台面 + 剖面线）| 'rail'（铝轨）| 'soil'（室外地面）；o.depth 厚度 px；o.stops（rail 端挡板，默认画） */
   function ground(c, x0, x1, y, o) {
     o = o || {}; var k = o.kind || 'floor', dp = o.depth || (k === 'rail' ? 7 : 8), g; c.save();
     if (k === 'rail') {
       g = c.createLinearGradient(0, y, 0, y + dp); g.addColorStop(0, COL.dark ? '#c4c9d2' : '#eef0f3'); g.addColorStop(0.5, COL.dark ? '#7e8590' : '#b7bcc5'); g.addColorStop(1, COL.dark ? '#4c525c' : '#8c929c');
       c.fillStyle = g; c.fillRect(x0, y, x1 - x0, dp); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(x0, y + dp * 0.55, x1 - x0, 1);
-      c.fillStyle = COL.dark ? '#2d3139' : '#5d636e'; c.fillRect(x0 - 3, y - 6, 4, dp + 6); c.fillRect(x1 - 1, y - 6, 4, dp + 6); /* 端挡板 */
+      if (o.stops !== false) { c.fillStyle = COL.dark ? '#2d3139' : '#5d636e'; c.fillRect(x0 - 3, y - 6, 4, dp + 6); c.fillRect(x1 - 1, y - 6, 4, dp + 6); } /* 端挡板（o.stops: false 不画，用于画面外仍延伸的导轨） */
     } else if (k === 'soil') {
       g = c.createLinearGradient(0, y, 0, y + dp); g.addColorStop(0, COL.dark ? 'rgba(120,150,90,.55)' : 'rgba(110,150,70,.55)'); g.addColorStop(0.35, COL.dark ? 'rgba(110,90,60,.35)' : 'rgba(150,115,70,.30)'); g.addColorStop(1, 'rgba(150,115,70,0)');
       c.fillStyle = g; c.fillRect(x0, y, x1 - x0, dp);
@@ -340,9 +340,114 @@
   /* 平滑过渡：指数逼近目标（时间常数 tau 秒）；减少动态效果时直接跳到目标 */
   function approach(cur, tgt, dt, tau) { return RM.matches || !(tau > 0) ? tgt : tgt + (cur - tgt) * Math.exp(-dt / tau); }
   function hint(c, s, x, y, align) { txt(c, s, x, y, COL['ink-3'], '12px ' + FONT, align || 'left'); }
+  /* —— 光、粒子与电学器材（多个 demo 共用） —— */
+  /* 柔光：径向渐变光晕（灯、激光点、发光物体） */
+  function glow(c, x, y, r, col, a) {
+    if (!(r > 0.5)) return; var g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, alpha(col, a == null ? 0.6 : a)); g.addColorStop(1, alpha(col, 0));
+    c.save(); c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore();
+  }
+  /* 波长(nm) → 近似显示色 'rgb(…)'；可见光以外（< 380 紫外、> 750 红外）返回暗紫/暗红，另给 o.vis = false */
+  function wlColor(w) {
+    var r = 0, g = 0, b = 0;
+    if (w < 440) { r = clamp((440 - w) / 60, 0, 1); b = 1; } else if (w < 490) { g = (w - 440) / 50; b = 1; } else if (w < 510) { g = 1; b = (510 - w) / 20; } else if (w < 580) { r = (w - 510) / 70; g = 1; } else if (w < 645) { r = 1; g = (645 - w) / 65; } else r = 1;
+    var k = w < 380 ? 0.55 : w > 750 ? 0.5 : 1; return 'rgb(' + [r, g, b].map(function (v) { return Math.round(v * 255 * k); }).join(',') + ')';
+  }
+  /* 离屏缓存小图（按主题、像素比缓存）：大量相同物体（原子核、分子、电子）用 drawImage 画，免去每帧逐个做渐变 */
+  var SPR = {}, nSPR = 0;
+  function sprite(key, w, hgt, fn) {
+    var S = Math.min(window.devicePixelRatio || 1, 2), k = key + '|' + (COL.dark ? 'd' : 'l') + w + 'x' + hgt + '@' + S;
+    if (SPR[k]) return SPR[k]; if (++nSPR > 300) { SPR = {}; nSPR = 1; }
+    var cv = document.createElement('canvas'); cv.width = Math.ceil(w * S); cv.height = Math.ceil(hgt * S); var g = cv.getContext('2d'); g.scale(S, S); fn(g, w, hgt); return (SPR[k] = cv);
+  }
+  function ballSprite(r, col) { var s = Math.ceil(2 * r + 2); return sprite('ball' + col + r, s, s, function (g) { drawBall(g, s / 2, s / 2, r, col); }); } /* 立体小球的缓存图，边长 ⌈2r+2⌉ px */
+  function blit(c, img, x, y, w, hgt) { c.drawImage(img, x - w / 2, y - hgt / 2, w, hgt); } /* 以 (x,y) 为中心画缓存图，w×hgt 为显示尺寸（CSS px） */
+  /* 点电荷（小球 + 符号）：q > 0 红（--c2）、q < 0 蓝（--c1）；o = drawBall 的选项（flat 残影时不画符号） */
+  function drawCharge(c, x, y, r, q, o) {
+    o = o || {}; drawBall(c, x, y, r, q > 0 ? COL.c2 : COL.c1, o); if (o.flat) return;
+    var s = r * 0.48; c.save(); if (o.alpha != null) c.globalAlpha *= o.alpha; c.strokeStyle = '#fff'; c.lineWidth = Math.max(1.6, r * 0.2); c.lineCap = 'round'; c.beginPath();
+    c.moveTo(x - s, y); c.lineTo(x + s, y); if (q > 0) { c.moveTo(x, y - s); c.lineTo(x, y + s); } c.stroke(); c.restore();
+  }
+  /* 匀强磁场区域：淡色底 + ⊙（dir > 0，垂直纸面向外）/ ⊗（dir < 0，向里）；o = { gap 间距, r 符号半径, ox 横向偏移（随画面滚动） } */
+  function bField(c, x0, y0, x1, y1, dir, o) {
+    o = o || {}; var gp = o.gap || 38, r = o.r || 5.5, col = alpha(COL.accent, 0.6), sx = x0 + gp / 2 - (((o.ox || 0) % gp) + gp) % gp, x, y; c.save();
+    c.fillStyle = alpha(COL.accent, COL.dark ? 0.13 : 0.08); c.fillRect(x0, y0, x1 - x0, y1 - y0);
+    c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip();
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.1; c.beginPath();
+    for (x = sx; x < x1 + r; x += gp) for (y = y0 + gp / 2; y < y1 + r; y += gp) {
+      c.moveTo(x + r, y); c.arc(x, y, r, 0, 7);
+      if (dir < 0) { var k = r * 0.62; c.moveTo(x - k, y - k); c.lineTo(x + k, y + k); c.moveTo(x + k, y - k); c.lineTo(x - k, y + k); }
+    }
+    c.stroke();
+    if (dir > 0) { c.beginPath(); for (x = sx; x < x1 + r; x += gp) for (y = y0 + gp / 2; y < y1 + r; y += gp) { c.moveTo(x + r * 0.32, y); c.arc(x, y, r * 0.32, 0, 7); } c.fill(); }
+    c.restore();
+  }
+  /* 导线：铜色、带高光；o = { w 线宽, col } */
+  function wire(c, pts, o) {
+    o = o || {}; var w = o.w || 2; c.save(); c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); pts.forEach(function (p, i) { i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); });
+    c.strokeStyle = o.col || (COL.dark ? '#c08a55' : '#8a5a2b'); c.lineWidth = w + 1; c.stroke();
+    c.strokeStyle = COL.dark ? 'rgba(255,225,190,.4)' : 'rgba(255,228,196,.75)'; c.lineWidth = Math.max(0.7, w * 0.35); c.stroke(); c.restore();
+  }
+  /* 干电池：中心 (x,y)，长 L、直径 dm，ang 为“+ 极”所指方向（0 向右，−π/2 向上）；o = { col, label } */
+  function drawCell(c, x, y, L, dm, ang, o) {
+    o = o || {}; var hl = L / 2, hr = dm / 2, col = o.col || COL.c4; c.save(); c.translate(x, y); c.rotate(ang || 0);
+    var g = c.createLinearGradient(0, -hr, 0, hr); g.addColorStop(0, shade(col, -0.35)); g.addColorStop(0.3, shade(col, 0.45)); g.addColorStop(0.62, col); g.addColorStop(1, shade(col, -0.5));
+    var mt = c.createLinearGradient(0, -hr, 0, hr); mt.addColorStop(0, '#80868f'); mt.addColorStop(0.32, '#f1f3f6'); mt.addColorStop(1, '#646a74');
+    c.fillStyle = mt; c.fillRect(-hl, -hr, 3, dm); c.fillRect(hl - 4, -hr * 0.36, 4, hr * 0.72);                /* − 底面、+ 极帽 */
+    rrect(c, -hl + 2, -hr, L - 6, dm, 2); c.fillStyle = g; c.fill(); c.lineWidth = 0.8; c.strokeStyle = shade(col, -0.6); c.stroke();
+    c.fillStyle = mt; c.fillRect(hl - 4 - L * 0.16, -hr, L * 0.16, dm);                                           /* + 端金属环 */
+    c.restore();
+    var ca = Math.cos(ang || 0), sa = Math.sin(ang || 0), px = -sa, py = ca;                                       /* 标 + / − （不随电池旋转） */
+    txt(c, '+', x + ca * (hl - 8) + px * (hr + 8), y + sa * (hl - 8) + py * (hr + 8), COL.c2, '700 12px ' + FONT);
+    txt(c, '−', x - ca * (hl - 6) + px * (hr + 8), y - sa * (hl - 6) + py * (hr + 8), COL.c1, '700 12px ' + FONT);
+    if (o.label) txt(c, o.label, x - px * (hr + 12), y - py * (hr + 12), COL['ink-2'], '12px ' + FONT, Math.abs(px) > 0.5 ? (px > 0 ? 'right' : 'left') : 'center');
+  }
+  /* 色环电阻（含引线）：从 (x1,y1) 到 (x2,y2)；o = { len 本体长, th 粗细, col } */
+  function drawResistor(c, x1, y1, x2, y2, o) {
+    o = o || {}; var L = Math.hypot(x2 - x1, y2 - y1), bl = Math.min(o.len || L * 0.6, L - 4), th = o.th || 10, col = o.col || (COL.dark ? '#c9b48a' : '#dcc89c');
+    wire(c, [[x1, y1], [x2, y2]], { w: 1.3, col: COL.dark ? '#aeb4bd' : '#7d838d' });
+    c.save(); c.translate((x1 + x2) / 2, (y1 + y2) / 2); c.rotate(Math.atan2(y2 - y1, x2 - x1));
+    rrect(c, -bl / 2, -th / 2, bl, th, th * 0.45); c.fillStyle = col; c.fill(); c.save(); c.clip();
+    ['#8b5a2b', '#222', '#c0392b', '#c9a227'].forEach(function (b, i) { c.fillStyle = b; c.fillRect(-bl / 2 + bl * [0.2, 0.33, 0.46, 0.74][i], -th / 2, Math.max(2, bl * 0.07), th); });
+    var g = c.createLinearGradient(0, -th / 2, 0, th / 2); g.addColorStop(0, 'rgba(0,0,0,.18)'); g.addColorStop(0.32, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(0,0,0,.32)'); c.fillStyle = g; c.fillRect(-bl / 2, -th / 2, bl, th); c.restore();
+    rrect(c, -bl / 2, -th / 2, bl, th, th * 0.45); c.lineWidth = 0.8; c.strokeStyle = shade(col, -0.6); c.stroke(); c.restore();
+  }
+  /* 指针式电表：中心 (x,y)、半径 r；frac = 读数 / 满偏（截在 −0.02–1.04）；o = { label 'A' / 'V', max 满偏标注, text 表下读数 } */
+  function drawMeter(c, x, y, r, frac, o) {
+    o = o || {}; c.save(); shadow(c, x, y + r + 1, r * 0.9, 3, 0.3);
+    var g = c.createLinearGradient(0, y - r, 0, y + r); g.addColorStop(0, '#6b717c'); g.addColorStop(1, '#2b2e35');
+    c.beginPath(); c.arc(x, y, r, 0, 7); c.fillStyle = g; c.fill();
+    c.beginPath(); c.arc(x, y, r * 0.84, 0, 7); c.fillStyle = COL.dark ? '#e2dfd6' : '#fbfaf4'; c.fill();
+    var px = x, py = y + r * 0.38, R = r * 0.92, a0 = -Math.PI * 0.8, a1 = -Math.PI * 0.2, i, a;
+    c.strokeStyle = '#3a3e46'; c.lineWidth = 1; c.beginPath(); c.arc(px, py, R * 0.86, a0, a1);
+    for (i = 0; i <= 10; i++) { a = a0 + (a1 - a0) * i / 10; var k = i % 5 ? 0.78 : 0.7; c.moveTo(px + Math.cos(a) * R * 0.86, py + Math.sin(a) * R * 0.86); c.lineTo(px + Math.cos(a) * R * k, py + Math.sin(a) * R * k); }
+    c.stroke();
+    if (r >= 17 && o.max != null) { c.fillStyle = '#3a3e46'; c.font = Math.round(r * 0.24) + 'px ' + FONT; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('0', px + Math.cos(a0) * R * 0.52, py + Math.sin(a0) * R * 0.52 + 2); c.fillText(String(o.max), px + Math.cos(a1) * R * 0.5, py + Math.sin(a1) * R * 0.5 + 2); }
+    if (o.label) { c.fillStyle = '#3a3e46'; c.font = '700 ' + Math.round(r * 0.34) + 'px ' + FONT; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.label, x, y + r * 0.6); }
+    a = a0 + (a1 - a0) * clamp(isFinite(frac) ? frac : 1.04, -0.02, 1.04);
+    c.strokeStyle = '#c0392b'; c.lineWidth = 1.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(px, py); c.lineTo(px + Math.cos(a) * R * 0.9, py + Math.sin(a) * R * 0.9); c.stroke();
+    c.beginPath(); c.arc(px, py, Math.max(1.8, r * 0.09), 0, 7); c.fillStyle = '#2b2e35'; c.fill(); c.restore();
+    if (o.text) txt(c, o.text, x, y + r + 10, COL['ink-2'], '600 12px ' + FONT);
+  }
+  /* 滑动变阻器：瓷管绕线从 x0 到 x1（中心高 y），上方金属杆带滑片；frac 0–1 为滑片位置。
+     返回 { x 滑片 x, rodY 金属杆 y, coilL / coilR 绕线两端接线处 [x,y], rodR 金属杆右端接线处 [x,y] } */
+  function drawRheostat(c, x0, x1, y, frac, o) {
+    o = o || {}; var th = o.th || 12, ry = y - th / 2 - 9, xs = x0 + (x1 - x0) * clamp(frac, 0, 1), i; c.save();
+    shadow(c, (x0 + x1) / 2, y + th / 2 + 4, (x1 - x0) * 0.55, 3, 0.25);
+    c.fillStyle = COL.dark ? '#5b606b' : '#8c929c'; c.fillRect(x0 - 7, ry - 3, 5, y + th / 2 - ry + 4); c.fillRect(x1 + 2, ry - 3, 5, y + th / 2 - ry + 4); /* 两端支架 */
+    var g = c.createLinearGradient(0, y - th / 2, 0, y + th / 2); g.addColorStop(0, '#b9a37a'); g.addColorStop(0.35, '#f1e3c4'); g.addColorStop(1, '#8a7650');
+    c.fillStyle = g; c.fillRect(x0, y - th / 2, x1 - x0, th);
+    c.strokeStyle = 'rgba(70,45,20,.55)'; c.lineWidth = 0.9; c.beginPath(); for (i = x0 + 1.5; i < x1; i += 2.6) { c.moveTo(i, y - th / 2); c.lineTo(i + 1.2, y + th / 2); } c.stroke();
+    var m = c.createLinearGradient(0, ry - 2, 0, ry + 2); m.addColorStop(0, '#f1f3f6'); m.addColorStop(1, '#6b717c'); c.fillStyle = m; c.fillRect(x0 - 6, ry - 2, x1 - x0 + 12, 4); /* 金属杆 */
+    var sg = c.createLinearGradient(xs - 7, 0, xs + 7, 0); sg.addColorStop(0, '#3a3e46'); sg.addColorStop(0.4, '#9aa0aa'); sg.addColorStop(1, '#2b2e35');
+    rrect(c, xs - 7, ry - 6, 14, 10, 2); c.fillStyle = sg; c.fill(); c.fillStyle = '#c9a227'; c.fillRect(xs - 1.5, ry + 4, 3, y - th / 2 - ry - 3); /* 滑片与簧片 */
+    c.restore();
+    return { x: xs, rodY: ry, coilL: [x0 - 4, y], coilR: [x1 + 4, y], rodR: [x1 + 6, ry] };
+  }
   var DM = window.EJUDemo = { reg: function (n, f) { REG[n] = f; }, P: P, COL: COL, fx: fx, sci: sci, arrow: arrow, txt: txt, line: line, dot: dot, Map: Map, axes: axes, bars: bars,
     FONT: FONT, clamp: clamp, shade: shade, alpha: alpha, rrect: rrect, shadow: shadow, drawBall: drawBall, drawCart: drawCart, drawBlock: drawBlock, drawWeight: drawWeight, drawPulley: drawPulley,
-    wood: wood, woodPattern: woodPattern, ground: ground, ruler: ruler, trail: Trail, approach: approach, hint: hint, reduced: function () { return RM.matches; } };
+    wood: wood, woodPattern: woodPattern, ground: ground, ruler: ruler, trail: Trail, approach: approach, hint: hint, reduced: function () { return RM.matches; },
+    glow: glow, wlColor: wlColor, sprite: sprite, ballSprite: ballSprite, blit: blit, drawCharge: drawCharge, bField: bField, wire: wire, drawCell: drawCell, drawResistor: drawResistor, drawMeter: drawMeter, drawRheostat: drawRheostat };
   function boot() {
     readCols();
     var els = [].slice.call(document.querySelectorAll('.demo[data-demo]'));

@@ -8,19 +8,19 @@ MARK='①②③④⑤⑥'
 DEMOS={
 'motion':[('vt','v–t 图构建器','v-tグラフ','拖动 v–t 图的折点，小车、x–t 图和位移面积同步变化；也可直接抓住小车推出去，实测 v–t / x–t。'),('proj','抛体运动','放物運動','拖动初速度箭头（或用滑块）改变初速与仰角，比较射程与最高点；也可直接抓住小球甩出去。')],
 'force':[('incline','斜面上的连接体','斜面と滑車でつながれた物体','改变质量、倾角和摩擦系数，看受力图、加速度与张力；可抓住物块或砝码推一下，看动摩擦下的运动。')],
-'energy':[('energy','曲面上的力学能','力学的エネルギー保存','拖动小球选择释放点；打开摩擦看力学能如何变成热。')],
+'energy':[('energy','曲面上的力学能','力学的エネルギー保存','可直接抓住小球放到释放点，或沿轨道推出去；打开摩擦看力学能如何变成热。')],
 'momentum':[('collide','一维碰撞','1次元の衝突','调质量、速度和恢复系数 e，比较碰撞前后的动量与动能；可直接抓住小球推出去碰撞。')],
-'circular-shm':[('shm','简谐振动与参考圆','単振動と等速円運動','弹簧振子与参考圆同步运动，下方画出 x–t 图。')],
-'gravitation':[('orbit','卫星轨道与宇宙速度','人工衛星の軌道','改变发射速度：圆、椭圆、抛物线、双曲线。')],
-'thermal':[('pv','p–V 循环绘制器','p-V図と熱サイクル','拖动状态点 A–D，逐段计算 W、ΔU、Q 与热效率。')],
-'waves':[('wave','叠加・驻波・纵波','重ね合わせ・定常波・縦波','切换模式观察脉冲叠加、驻波的节与腹、纵波的疏密。')],
-'sound':[('doppler','多普勒效应','ドップラー効果','移动声源，看前后波长与观察者听到的频率。'),('wave','驻波（弦・气柱的基础）','定常波','节间距 λ/2：弦振动与气柱共鸣都由驻波决定。')],
-'light':[('lens','透镜成像（光线作图）','レンズの作図','拖动物体，看三条特征光线与像的位置、倍率。'),('slit','双缝干涉（杨氏实验）','ヤングの実験','改变波长、缝间距与屏距，看条纹间隔 Δx = Lλ/d。')],
-'electric-field':[('field','电场线与等势线','電気力線と等電位線','拖动电荷与绿色探针，读出电势与电场强度。'),('cap','平行板电容器的操作','コンデンサーの操作','比较“接着电池”和“断开后”改变板间距或插入介质的结果。')],
-'current':[('dc','电源内阻与输出功率','内部抵抗と最大電力','调 E、r、R，看电流、端电压、P–R 曲线与电源伏安图。')],
-'magnetism':[('lorentz','磁场中带电粒子的圆运动','ローレンツ力と円運動','改变电荷符号、速率、B 与质量，看半径与周期。')],
-'induction-ac':[('rod','导轨上的导体棒与终端速度','導体棒と終端速度','恒力拉动导体棒，看感应电流、电磁力与 v–t 图。')],
-'atomic':[('photo','光电效应','光電効果','选择金属、改变频率，看最大动能与极限频率。'),('decay','半衰期','半減期','400 个原子核随机衰变，与理论曲线比较。')],
+'circular-shm':[('shm','简谐振动与参考圆','単振動と等速円運動','弹簧振子与参考圆同步运动，下方画出 x–t 图；可直接抓住木块拉开或推一下再松手。')],
+'gravitation':[('orbit','卫星轨道与宇宙速度','人工衛星の軌道','改变发射速度：圆、椭圆、抛物线、双曲线；也可直接抓住卫星甩出去。')],
+'thermal':[('pv','p–V 循环绘制器','p-V図と熱サイクル','拖动状态点 A–D，逐段计算 W、ΔU、Q 与热效率；气缸示意随状态点同步。')],
+'waves':[('wave','叠加・驻波・纵波','重ね合わせ・定常波・縦波','切换模式观察脉冲叠加、驻波的节与腹、纵波的疏密；可直接抓住绳端甩出波。')],
+'sound':[('doppler','多普勒效应','ドップラー効果','移动声源，看前后波长与观察者听到的频率；可直接抓住声源小车拖动或甩出。'),('wave','驻波（弦・气柱的基础）','定常波','节间距 λ/2：弦振动与气柱共鸣都由驻波决定。')],
+'light':[('lens','透镜成像（光线作图）','レンズの作図','可直接抓住光具座上的物体拖动，看三条特征光线与像的位置、倍率。'),('slit','双缝干涉（杨氏实验）','ヤングの実験','改变波长、缝间距与屏距，看条纹间隔 Δx = Lλ/d；可直接抓住光屏改变 L。')],
+'electric-field':[('field','电场线与等势线','電気力線と等電位線','可直接抓住电荷与绿色探针拖动，读出电势与电场强度。'),('cap','平行板电容器的操作','コンデンサーの操作','比较“接着电池”和“断开后”改变板间距或插入介质的结果；可直接抓住上极板拖动。')],
+'current':[('dc','电源内阻与输出功率','内部抵抗と最大電力','调 E、r、R，看电流、端电压、P–R 曲线与电源伏安图；可直接拖动滑动变阻器的滑片。')],
+'magnetism':[('lorentz','磁场中带电粒子的圆运动','ローレンツ力と円運動','改变电荷符号、速率、B 与质量，看半径与周期；也可直接抓住粒子射出。')],
+'induction-ac':[('rod','导轨上的导体棒与终端速度','導体棒と終端速度','恒力拉动导体棒，看感应电流、电磁力与 v–t 图；可直接抓住导体棒推出去。')],
+'atomic':[('photo','光电效应','光電効果','选择金属、改变频率，看最大动能与极限频率；光电管实验可调逆向电压。'),('decay','半衰期','半減期','400 个原子核随机衰变，与理论曲线比较；可拖动时间点前后查看。')],
 }
 def demosec(t):
     ds=DEMOS.get(t['slug'],[])
@@ -58,7 +58,7 @@ def page(t):
     TE=f'''<section id="terms"><h2>术语对照</h2><p class="jp-sub">用語</p><div class="tw"><table><tr><th>中文</th><th>日本語</th><th>读法</th></tr>{terms}</table></div></section>''' if t['terms'] else ''
     return f'''<!DOCTYPE html><html lang="zh-CN"><head><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>EJU 理科 物理 · {t["n"]} {t["zh"]}</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/demos.js?v=2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/demos.js?v=3"></script>
 <link rel="stylesheet" href="../../assets/site.css"><script>try{{var t=localStorage.getItem('eju-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
 <header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="../../">← 目录</a></p><p class="eyebrow">EJU 理科 物理 · {t["area"]} · {t["ja"]}</p><h1>{t["n"]} {t["zh"]}</h1><p class="lead">{t["lead"]}</p></div><div class="hero-formula" aria-hidden="true">{hero}</div></div></header>
