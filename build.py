@@ -86,77 +86,63 @@ window.addEventListener('load',function(){{if(!window.renderMathInElement){{docu
 <script src="../../assets/nav.js"></script></body></html>'''
 for t in TOPICS:
     os.makedirs(f'topics/{t["slug"]}',exist_ok=True); open(f'topics/{t["slug"]}/index.html','w').write(page(t))
-# HOME：首页目录（hero + 按 area 分组的 bento 卡片 + 资料工具 + 过去问排行）；样式在 site.css 末尾「首页目录」块，滚动渐显在 assets/home.js
-def _ic(d): return f'<svg class="ix-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{d}</svg>'
-ICON = {
- '力学': '<path d="M3 20h18"/><path d="M5 20C7 9 11 6.5 13.5 6.5S18.5 10 19.5 20" stroke-dasharray="2 2.6"/><circle cx="13.5" cy="6.5" r="2"/><path d="M15.5 6.5h3.5m-1.5-1.5 1.5 1.5-1.5 1.5"/>',
- '热': '<path d="M10 13.6V5a2 2 0 0 1 4 0v8.6a4 4 0 1 1-4 0Z"/><path d="M12 9v7.5"/><path d="M17 5h2.5M17 8.5h2.5"/>',
- '波动': '<path d="M2 12c1.7-4 3.3-6 5-6s3.3 2 5 6 3.3 6 5 6 3.3-2 5-6"/><path d="M2 20h20" stroke-dasharray="1.5 2.5"/>',
- '电磁气': '<path d="M5 4v8a7 7 0 0 0 14 0V4"/><path d="M5 4h3.5v8a3.5 3.5 0 0 0 7 0V4H19"/><path d="M5 7.5h3.5M15.5 7.5H19"/>',
- '原子': '<circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/>',
- 'demos': '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
- 'constants': '<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M3.5 15h17M10 4v16"/>',
- 'formulas': '<path d="M17 5H7l5 7-5 7h10"/>',
- 'pitfalls': '<path d="M10.3 4.2 2.9 17.5A2 2 0 0 0 4.6 20.5h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 10v4M12 17.2v.1"/>',
- 'terms': '<rect x="3" y="5" width="12" height="9" rx="2"/><path d="M9 14v2.5a2 2 0 0 0 2 2h4.5L19 21v-2.5h0a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-4"/><path d="M6.5 9.5h5"/>',
- 'search': '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/>',
- 'tips': '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M10 2.5h4M18.5 6.5l1.5-1.5"/>',
- 'down': '<path d="M12 5v14M6 13l6 6 6-6"/>',
- 'right': '<path d="M5 12h14M13 6l6 6-6 6"/>',
- 'ext': '<path d="M7 17 17 7M9 7h8v8"/>',
-}
-GROUPS = [  # area：日文名、一句简介、bento 宽度（6 栏网格）
- ('力学', '力学', '从运动学到万有引力：受力分析、能量与动量守恒、圆周运动与简谐振动。', 'w4'),
- ('热', '熱', '比热与热平衡、理想气体状态方程、热力学第一定律与热机效率。', 'w2'),
- ('波动', '波動', '波的叠加与驻波，弦与气柱、多普勒效应，光的折射、透镜与干涉。', 'w3'),
- ('电磁气', '電磁気', '电场与电容器、直流电路、电流的磁场与洛伦兹力、电磁感应与交流。', 'w3'),
- ('原子', '原子', '光电效应与物质波、玻尔模型与能级、放射线、半衰期与核反应。', 'w2'),
+# HOME：首页目次（像书的目录：左侧章号，右侧章名与专题，点线引到右侧的题数・过去问・星级；附录列资料与工具；最后是过去问频度表）。样式在 site.css 末尾「首页目次」块，无脚本
+CHAPTERS = [  # area：日文名、一句章节提要
+ ('力学', '力学', '从运动学到万有引力：受力分析、能量与动量守恒、圆周运动与简谐振动。'),
+ ('热', '熱', '比热与热平衡、理想气体状态方程、热力学第一定律与热机效率。'),
+ ('波动', '波動', '波的叠加与驻波，弦与气柱、多普勒效应，光的折射、透镜与干涉。'),
+ ('电磁气', '電磁気', '电场与电容器、直流电路、电流的磁场与洛伦兹力、电磁感应与交流。'),
+ ('原子', '原子', '光电效应与物质波、玻尔模型与能级、放射线、半衰期与核反应。'),
 ]
-def _meta(t):
-    s = (str(len(t["problems"])) + " 题") if t["problems"] else t.get("sub", "常用数据速查")
-    return f'{t["ja"]} · {s}' + (f' · 过去问 {t["bank"]["n"]} 题 <span class="stars">{t["bank"]["stars"]}</span>' if t.get("bank") else '')
-def _row(t):
-    return (f'<li><a href="topics/{t["slug"]}/"><span class="n">{t["n"]:02d}</span><span class="ix-t"><b>{t["zh"]}</b>'
-            f'<small lang="ja">{_meta(t)}</small></span>{_ic(ICON["right"])}</a></li>')
-_cards = []
-for area, ja, intro, w in GROUPS:
+def _stars(s): return f'<span class="stars" aria-label="重要度 {len(s)}/3">{s}</span>'
+def _entry(t, label=None, meta=None):
+    if meta is None:
+        meta = (f'{len(t["problems"])} 题' if t['problems'] else t.get('sub', '常用数据速查')) + (f'<span class="ct-sep"> · </span>过去问 {t["bank"]["n"]} {_stars(t["bank"]["stars"])}' if t.get('bank') else '')
+    return (f'<li><a href="topics/{t["slug"]}/"><span class="ct-n">{t["n"]:02d}</span><span class="ct-t"><span class="ct-zh">{label or t["zh"]}</span>'
+            f'<span class="ct-ja" lang="ja">{t["ja"]}</span></span><span class="ct-dots" aria-hidden="true"></span><span class="ct-m">{meta}</span></a></li>')
+_parts = []
+for k, (area, ja, intro) in enumerate(CHAPTERS, 1):
     ts = [t for t in TOPICS if t['area'] == area]
     nb = sum(t['bank']['n'] for t in ts if t.get('bank'))
-    _cards.append(f'<article class="ix-card {w} rv" aria-labelledby="g-{ja}"><div class="ix-card-h"><span class="ix-badge">{_ic(ICON[area])}</span>'
-                  f'<div><h3 id="g-{ja}">{area}<span lang="ja">{ja}</span></h3><p class="ix-sub">{len(ts)} 个专题 · 过去问 {nb} 题</p></div></div>'
-                  f'<p class="ix-intro">{intro}</p><ol class="ix-list{" two" if len(ts) > 4 else ""}">{"".join(_row(t) for t in ts)}</ol></article>')
+    _parts.append(f'<li class="ct-part"><p class="ct-no" aria-hidden="true">{k}</p><div class="ct-body">'
+                  f'<h3 id="ch-{k}"><span class="ct-vh">第 {k} 章　</span>{area}<span class="ct-chja" lang="ja">{ja}</span></h3>'
+                  f'<p class="ct-intro">{intro}<span class="ct-sum">{len(ts)} 个专题 · 过去问 {nb} 题</span></p>'
+                  f'<ol class="ct-list">{"".join(_entry(t) for t in ts)}</ol></div></li>')
 _D = next(t for t in TOPICS if t['slug'] == 'demos')
-_cards.append(f'<a class="ix-card ix-feature w4 rv" href="topics/demos/"><div class="ix-card-h"><span class="ix-badge">{_ic(ICON["demos"])}</span>'
-              f'<div><h3><span class="n">{_D["n"]} · {_D["area"]}</span>互动演示总览（{_D["demo_count"]} 个）</h3><p class="ix-sub" lang="ja">{_D["ja"]} · {_D["sub"]}</p></div></div>'
-              f'<p class="ix-intro">拖动、调参数，看 v–t 图、碰撞、驻波、电场线、透镜成像随之变化；每个演示都链接回对应专题的讲解与练习。</p>'
-              f'<span class="ix-more">打开全部演示{_ic(ICON["right"])}</span></a>')
-_tools = ''.join(f'<li class="rv"><a class="ix-tool" href="topics/{t["slug"]}/"><span class="ix-badge">{_ic(ICON[t["slug"]])}</span><span class="ix-t">'
-                 f'<span class="n">{t["n"]} · {t["area"]}</span><b>{t["zh"]}</b><small lang="ja">{_meta(t)}</small></span></a></li>'
-                 for t in TOPICS if t['area'] in ('资料', '速查', '工具'))
+_CH_AREAS = {c[0] for c in CHAPTERS}
+_appx = ''.join(_entry(t, f'互动演示总览（{t["demo_count"]} 个）', '全部演示一览') if t['slug'] == 'demos' else _entry(t)
+                for t in TOPICS if t['area'] not in _CH_AREAS)
 RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td class="num">{t["bank"]["n"]}</td><td class="stars">{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
 _np = sum(len(t['problems']) for t in TOPICS); _nb = sum(t['bank']['n'] for t in TOPICS if t.get('bank')); _nt = sum(1 for t in TOPICS if t['problems'])
 _SITES = [('https://feather0000.github.io/eju-calculus/', 'EJU 数学コース2 网站'), ('https://feather0000.github.io/eju-chemistry/', 'EJU 理科 化学 网站'), ('https://feather0000.github.io/eju-biology/', 'EJU 理科 生物 网站')]
+PREFACE = ('这是按 EJU 理科（物理）大纲整理的中文讲义。建议先按章节读讲解和例题，再做练习；公式速查、易错点和术语对照可以随时翻。'
+           '各页开头的出题频度来自 2005–2025 年试卷的统计，拿不准先看哪一章时，可以参考它，也可以直接看本页最后的频度表。')
 open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
-{HEADJS}<script>(function(){{var d=document.documentElement;if(!('IntersectionObserver'in window)||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))return;d.classList.add('ix-anim');setTimeout(function(){{if(!window.__ixReveal)d.classList.remove('ix-anim')}},3000)}})()</script>
+{HEADJS}
 <title>EJU 理科 物理 全专题讲解</title>{headmeta(SITE_NAME + " 全专题讲解", SITE_DESC, "", "")}
-<link rel="stylesheet" href="assets/site.css"><script defer src="assets/home.js"></script></head><body class="home ix">
-<a class="skip" href="#chapters">跳到专题目录</a>
-<header class="ix-hero"><div class="ix-wrap">
-<div class="ix-top"><p class="eyebrow">EJU 理科 · 物理</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
-<h1 class="ix-in">EJU 理科 物理<br>全专题讲解</h1>
-<p class="ix-lead ix-in">按 JASSO 理科シラバス（物理）编排的中文讲义：要点、公式、原创例题与 EJU 风格选择题。</p>
-<p class="ix-cta ix-in"><a class="ix-btn pri" href="#chapters">浏览专题章节{_ic(ICON["down"])}</a><a class="ix-btn" href="topics/formulas/">公式速查</a><a class="ix-btn" href="topics/demos/">{_ic(ICON["demos"])}互动演示总览（{_D["demo_count"]} 个）</a><a class="ix-btn" href="topics/tips/">{_ic(ICON["tips"])}快速解题技巧</a></p>
-<dl class="ix-stats ix-in"><div><dt>个讲解专题</dt><dd>{_nt}</dd></div><div><dt>道原创练习题</dt><dd>{_np}</dd></div><div><dt>道过去问已归类统计</dt><dd>{_nb}</dd></div><div><dt>个互动演示</dt><dd>{_D["demo_count"]}</dd></div></dl>
-</div></header>
-<main id="main" class="ix-wrap">
-<section id="chapters" class="ix-sec" aria-labelledby="h-chapters"><div class="ix-head rv"><p class="eyebrow">Chapters · 分野別</p><h2 id="h-chapters">专题章节</h2><p>{SITE_DESC}</p></div>
-<div class="ix-bento">{"".join(_cards)}</div></section>
-<section id="tools" class="ix-sec" aria-labelledby="h-tools"><div class="ix-head rv"><p class="eyebrow">Reference · 資料・ツール</p><h2 id="h-tools">资料・速查・工具</h2><p>考前查公式、对术语、找易错点；站内搜索覆盖题目、讲解、公式与数据。</p></div>
-<ul class="ix-tools">{_tools}</ul></section>
-<section id="ranking" class="ix-sec" aria-labelledby="h-rank"><div class="ix-head rv"><p class="eyebrow">Frequency · 出題頻度</p><h2 id="h-rank">过去问出题频度排行</h2><p>依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计（各页开头有详细的「出题频度」表）。</p></div>
-<div class="tw rv"><table><thead><tr><th scope="col">专题页</th><th scope="col">原题册专题</th><th scope="col" class="num">题数</th><th scope="col">重要度</th></tr></thead><tbody>{RANKTBL}</tbody></table></div></section>
-<footer class="ix-foot"><p class="ix-sites">{"".join(f'<a href="{u}">{a}{_ic(ICON["ext"])}</a>' for u, a in _SITES)}</p><p>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</p></footer>
+<link rel="stylesheet" href="assets/site.css"></head><body class="home contents">
+<a class="skip" href="#chapters">跳到目次</a>
+<div class="ct-wrap">
+<header class="ct-head">
+<div class="ct-top"><p class="ct-kicker">EJU 理科 · 物理</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
+<h1>物理<br>全专题讲解</h1>
+<div class="ct-preface"><p>{PREFACE}</p>
+<p class="ct-facts">共 {_nt} 个讲解专题、{_np} 道原创练习题、{_D["demo_count"]} 个互动演示；过去问 {_nb} 题已按专题归类。</p></div>
+</header>
+<main id="main">
+<section id="chapters" aria-labelledby="h-chapters"><h2 id="h-chapters" class="ct-label">目次<span lang="ja">もくじ</span></h2>
+<ol class="ct-parts">{"".join(_parts)}</ol></section>
+<section id="appendix" aria-labelledby="h-appendix"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">附</p><div class="ct-body">
+<h2 id="h-appendix">资料・速查・工具<span class="ct-chja" lang="ja">資料・ツール</span></h2>
+<p class="ct-intro">考前查公式、对术语、找易错点；站内搜索覆盖题目、讲解、公式与数据。</p>
+<ol class="ct-list">{_appx}</ol></div></div></section>
+<section id="ranking" aria-labelledby="h-rank"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">表</p><div class="ct-body">
+<h2 id="h-rank">过去问出题频度<span class="ct-chja" lang="ja">出題頻度</span></h2>
+<p class="ct-intro">依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计，按题数从多到少排列（各页开头另有详细的「出题频度」表）。</p>
+<div class="tw"><table><thead><tr><th scope="col">专题页</th><th scope="col">原题册专题</th><th scope="col" class="num">题数</th><th scope="col">重要度</th></tr></thead><tbody>{RANKTBL}</tbody></table></div></div></div></section>
 </main>
+<footer class="ct-foot"><p class="ct-sites">姊妹站：{"".join(f'<a href="{u}">{a}</a>' for u, a in _SITES)}</p><p>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</p></footer>
+</div>
 {TOGGLEJS}<script src="assets/nav.js"></script></body></html>''')
 # 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
 open('404.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">

@@ -51,4 +51,4 @@ favicon 和 OG 图由 `/workspace/eju-polish-work/scripts/make_brand.py`（Pillo
 
 ## 四、首页目录改版
 
-把 `index.html`（由 `build.py` 模板生成）改成带首屏 hero 和按 `area` 分组的 bento 卡片目录：力学、热、波动、电磁气、原子，以及资料・速查・工具。保留全部专题链接、互动演示、解题技巧、过去问频度表，以及数学 / 化学 / 生物站外链。深色模式、主题脚本和 KaTeX SRI 不变。
+`index.html`（由 `build.py` 模板生成）是一页「目次」：左侧大号章号（1–5，主色衬线），右侧章名、一句提要和该章专题；专题行用点线引到右侧的题数、过去问题数和星级，窄屏（≤640px）隐去点线、把题数换到题名下方。资料・速查・工具与互动演示总览列在「附」，过去问出题频度表列在「表」。标题用 Noto Serif SC 700（jsDelivr fontsource 5.2.5，latin + chinese-simplified，`font-display: swap`），首页底色为纸色 `#fbfaf7`、深色为暖深灰 `#15140f`，只覆盖 `body.home.contents` 的中性色 token，专题页不受影响。没有卡片阴影、渐变、动画和首页脚本；交互只有链接颜色与下划线。保留全部专题链接、互动演示、解题技巧、过去问频度表，以及数学 / 化学 / 生物站外链；主题脚本和 KaTeX SRI 不变。
