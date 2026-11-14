@@ -48,3 +48,7 @@ npx -y modern-web-guidance@latest legacy-scan .   # 0 findings（改前 3：dark
 8. **性能**：字体全部 `font-display: swap`。仓库里没有 `<img>`，也没有为了转 WebP 去动 canvas。OG 图为兼容各平台保留 PNG，canvas 也不做懒加载。
 
 favicon 和 OG 图由 `/workspace/eju-polish-work/scripts/make_brand.py`（Pillow）生成，四站用同一套版式。设计层和 `eju-ux.js` 的母版在 `/workspace/eju-polish-work/`，用 `scripts/sync_ds.py` 同步到四站。
+
+## 四、首页目录改版
+
+把 `index.html`（由 `build.py` 模板生成）改成带首屏 hero 和按 `area` 分组的 bento 卡片目录：力学、热、波动、电磁气、原子，以及资料・速查・工具。保留全部专题链接、互动演示、解题技巧、过去问频度表，以及数学 / 化学 / 生物站外链。深色模式、主题脚本和 KaTeX SRI 不变。
