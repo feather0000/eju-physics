@@ -652,4 +652,29 @@ body.contents {
 @media (prefers-reduced-motion: reduce) {
   .contents a, .ct-zh { transition: none; }
 }
+/* 知识导图（#map）：书里的结构图——实线是章节树，虚线（物理蓝）是专题之间的联系；节点只有描边和下划线的变化 */
+.contents .mp { grid-column: 1 / -1; margin: var(--s-6) 0 0; }
+.contents .mp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.contents .mp-svg { display: block; width: 100%; height: auto; min-width: 56rem; }
+.contents .mp-hint { display: none; margin: 0 0 var(--s-2); font-size: 13.5px; color: var(--ink-3); }
+.contents .mp-tree path { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.contents .mp-x path { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 5 4; }
+.contents .mp-x text { fill: var(--accent); font: 12.5px var(--sans); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
+.contents .mp-box { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1; transition: stroke var(--dur) var(--ease); }
+.contents .mp-chb { stroke: var(--ink-2); }
+.contents .mp-root { stroke: var(--ink); stroke-width: 1.5; }
+.contents .mp-t { fill: var(--ink); font: 15px var(--sans); }
+.contents .mp-ch { fill: var(--ink); font: 700 19px var(--serif); letter-spacing: .06em; }
+.contents .mp-rt { fill: var(--ink); font: 700 24px var(--serif); letter-spacing: .3em; }
+.contents .mp-sub { fill: var(--ink-3); font: 12.5px var(--sans); }
+.contents .mp-svg a, .contents .mp-svg a text { text-decoration: none; }
+.contents .mp-svg a:hover .mp-box, .contents .mp-svg a:focus-visible .mp-box { stroke: var(--accent); stroke-width: 1.5; }
+.contents .mp-svg a:hover text:not(.mp-sub), .contents .mp-svg a:focus-visible text:not(.mp-sub) { fill: var(--accent); text-decoration: underline; }
+.contents .mp-svg a:focus-visible { outline: none; }
+.contents .mp-svg a:focus-visible .mp-box { stroke-width: 2.5; }
+.contents .mp figcaption { margin: var(--s-4) 0 0; font-size: 14px; line-height: 1.8; color: var(--ink-2); }
+.contents .mp-legend { list-style: none; margin: var(--s-1) 0 0; padding: 0; columns: 2 18rem; column-gap: var(--ct-gap); }
+.contents .mp-legend li { margin: 0; break-inside: avoid; }
+@media (max-width: 60rem) { .contents .mp-hint { display: block; } }
+@media (prefers-reduced-motion: reduce) { .contents .mp-box { transition: none; } }
 /* ==== /物理站首页目次 ==== */

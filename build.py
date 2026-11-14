@@ -112,6 +112,88 @@ _D = next(t for t in TOPICS if t['slug'] == 'demos')
 _CH_AREAS = {c[0] for c in CHAPTERS}
 _appx = ''.join(_entry(t, f'互动演示总览（{t["demo_count"]} 个）', '全部演示一览') if t['slug'] == 'demos' else _entry(t)
                 for t in TOPICS if t['area'] not in _CH_AREAS)
+# MAP：知识导图（内联 SVG，无脚本）。中心→五章→各章讲解专题，从 CHAPTERS / TOPICS 生成；虚线联系写在 XLINKS 里，
+# 路由按坐标自动选（相邻用格间短线、同章用右侧括线、跨章走空白处的折线），走不通就报错，免得画出压字的图。颜色全用 CSS 变量
+XLINKS = [  # (slug, slug, 标签)
+ ('energy', 'thermal', '能量守恒'), ('circular-shm', 'waves', '简谐振动与波'), ('waves', 'sound', '机械波'), ('waves', 'light', '波动光学'),
+ ('current', 'magnetism', '电流的磁场'), ('magnetism', 'induction-ac', '电磁感应'), ('light', 'atomic', '光电效应'), ('gravitation', 'circular-shm', '圆周运动'),
+]
+def _tw(s, fs): return sum(fs if ord(ch) > 0x2E7F else fs * .58 for ch in s)
+def _map():
+    W, X0, CW, CHY, CHH, TY, TP, TH, LF = 960, 12, 188, 96, 54, 178, 70, 44, 12.5
+    cols = [[t for t in TOPICS if t['area'] == a and t['problems']] for a, _, _ in CHAPTERS]
+    box, where = {}, {}
+    for c, ts in enumerate(cols):
+        w = max([88] + [round(_tw(t['zh'], 15)) + 26 for t in ts])
+        for r, t in enumerate(ts):
+            box[t['slug']] = (X0 + c * CW + 26, TY + r * TP, w, TH); where[t['slug']] = (c, r)
+    cx = X0 + 2 * CW + 74
+    obst = [(x - 4, y - 4, w + 8, h + 8) for x, y, w, h in box.values()] + [(X0 + c * CW, CHY, 148, CHH) for c in range(5)] + [(cx - 66, 6, 132, 50)]
+    spines = [(X0 + c * CW + 11, CHY + CHH, 2, box[ts[-1]['slug']][1] + TH / 2 - CHY - CHH) for c, ts in enumerate(cols) if ts]
+    def hit(r1, r2): return r1[0] < r2[0] + r2[2] and r2[0] < r1[0] + r1[2] and r1[1] < r2[1] + r2[3] and r2[1] < r1[1] + r1[3]
+    def segs(pts): return [(min(a[0], b[0]) - .5, min(a[1], b[1]) - .5, abs(a[0] - b[0]) + 1, abs(a[1] - b[1]) + 1) for a, b in zip(pts, pts[1:])]
+    used, lab, paths, band = [], [], [], [0]
+    def free(rs, extra=()): return not any(hit(r, o) for r in rs for o in list(extra) + used)
+    def place(pts, s, fixed=None):
+        lw, cands = _tw(s, LF) + 4, []
+        if fixed: cands = [fixed]
+        for a, b in sorted(zip(pts, pts[1:]), key=lambda p: -abs(p[0][0] - p[1][0]) - abs(p[0][1] - p[1][1])):
+            for f in (.5, .35, .65, .2, .8):
+                x, y = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
+                cands += [(x + 6, y - 8, 'start'), (x - 6, y - 8, 'end')] if a[0] == b[0] else [(x - lw / 2, y - 21, 'start'), (x - lw / 2, y + 5, 'start')]
+        for x, y, anc in cands:
+            r = (x if anc == 'start' else x - lw, y, lw, 16)
+            if fixed or free([r], obst + spines):
+                used.append(r); lab.append((x, y + 12, anc, s)); return
+        raise SystemExit(f'导图：放不下虚线标签「{s}」')
+    for a, b, s in XLINKS:
+        if a not in box or b not in box: print('map: skip link', a, b); continue
+        (ca, ra), (cb, rb) = where[a], where[b]
+        if (ca, ra) > (cb, rb): a, b, ca, ra, cb, rb = b, a, cb, rb, ca, ra
+        A, B = box[a], box[b]; pts = None
+        others = [o for k, o in zip(box, obst) if k not in (a, b)] + obst[len(box):]
+        if ca == cb and rb == ra + 1:  # 相邻：两格之间一小段竖线
+            x = A[0] + 30; pts = [(x, A[1] + A[3]), (x, B[1])]
+            paths.append(pts); used.extend(segs(pts)); place(pts, s, (x + 7, A[1] + A[3] + (TP - TH) / 2 - 8, 'start')); continue
+        if ca == cb:  # 同章隔行：右侧括线
+            xb = max(box[t['slug']][0] + box[t['slug']][2] for t in cols[ca][ra:rb + 1]) + 12
+            cand = [[(A[0] + A[2], A[1] + TH / 2), (xb, A[1] + TH / 2), (xb, B[1] + TH / 2), (B[0] + B[2], B[1] + TH / 2)]]
+        else:
+            bx, ax = B[0] + B[2] / 2, A[0] + A[2] / 2
+            low = max([A[1], B[1]] + [box[t['slug']][1] for c in range(ca + 1, cb) for t in cols[c]]) + TH + (TP - TH) / 2
+            cand = []
+            if rb != ra: cand.append([(A[0] + A[2], A[1] + TH / 2), (bx, A[1] + TH / 2), (bx, B[1] + (TH if rb < ra else 0))])
+            cand.append([(ax, A[1] + TH), (ax, low), (bx, low), (bx, B[1] + TH)])
+            xv, yb = X0 + cb * CW - 18 - 8 * band[0], (CHY + CHH + TY) / 2 - 4 * band[0]
+            cand.append([(A[0] + A[2], A[1] + TH / 2), (xv, A[1] + TH / 2), (xv, yb), (bx, yb), (bx, B[1])])
+        for c in cand:
+            ss = segs(c)
+            if free(ss[1:-1], others) and free(ss[:1] + ss[-1:], others):
+                pts = c; break
+        if not pts: raise SystemExit(f'导图：{a}–{b} 找不到不压字的走线')
+        if pts[2][1] == (CHY + CHH + TY) / 2 - 4 * band[0]: band[0] += 1
+        paths.append(pts); used.extend(segs(pts)); place(pts, s)
+    E = html.escape
+    out = [f'<svg class="mp-svg" viewBox="0 0 {W} {TY + max(len(c) for c in cols) * TP + 6}" aria-label="物理知识导图">',
+           '<g class="mp-tree" aria-hidden="true">', f'<path d="M{cx} 56V78M{X0 + 74} 78H{X0 + 4 * CW + 74}' + ''.join(f'M{X0 + c * CW + 74} 78V{CHY}' for c in range(5)) + '"/>']
+    for c, ts in enumerate(cols):
+        if ts: x = X0 + c * CW + 12; out.append(f'<path d="M{x} {CHY + CHH}V{box[ts[-1]["slug"]][1] + TH / 2:g}' + ''.join(f'M{x} {box[t["slug"]][1] + TH / 2:g}H{box[t["slug"]][0]}' for t in ts) + '"/>')
+    out.append('</g><g class="mp-x" aria-hidden="true">' + ''.join(f'<path d="M{p[0][0]:g} {p[0][1]:g}' + ''.join(f'L{x:g} {y:g}' for x, y in p[1:]) + '"/>' for p in paths)
+               + ''.join(f'<text x="{x:g}" y="{y:g}" text-anchor="{anc}">{E(s)}</text>' for x, y, anc, s in lab) + '</g>')
+    out.append(f'<a href="#chapters" aria-label="物理：回到目次"><title>物理 · 物理</title><rect class="mp-box mp-root" x="{cx - 66}" y="6" width="132" height="50"/><text class="mp-rt" x="{cx}" y="40" text-anchor="middle">物理</text></a>')
+    for c, ((area, ja, _), ts) in enumerate(zip(CHAPTERS, cols)):
+        x = X0 + c * CW
+        out.append(f'<a href="#ch-{c + 1}" aria-label="第 {c + 1} 章 {area}，{len(ts)} 个专题"><title lang="ja">第 {c + 1} 章 · {ja}</title><rect class="mp-box mp-chb" x="{x}" y="{CHY}" width="148" height="{CHH}"/>'
+                   f'<text class="mp-ch" x="{x + 74}" y="{CHY + 25}" text-anchor="middle">{E(area)}</text><text class="mp-sub" x="{x + 74}" y="{CHY + 44}" text-anchor="middle">第 {c + 1} 章 · {len(ts)} 个专题</text></a>')
+        for t in ts:
+            bx, by, bw, bh = box[t['slug']]
+            out.append(f'<a href="topics/{t["slug"]}/" aria-label="{t["n"]:02d} {E(t["zh"])}"><title lang="ja">{E(t["ja"])}</title><rect class="mp-box" x="{bx}" y="{by}" width="{bw}" height="{bh}"/>'
+                       f'<text class="mp-t" x="{bx + 13}" y="{by + 27}">{E(t["zh"])}</text></a>')
+    out.append('</svg>')
+    nm = {t['slug']: t['zh'] for t in TOPICS}
+    legend = ''.join(f'<li><a href="topics/{a}/">{E(nm[a])}</a> — <a href="topics/{b}/">{E(nm[b])}</a>：{E(s)}</li>' for a, b, s in XLINKS if a in box and b in box)
+    return ''.join(out), legend
+MAPSVG, MAPLEGEND = _map()
 RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td class="num">{t["bank"]["n"]}</td><td class="stars">{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
 _np = sum(len(t['problems']) for t in TOPICS); _nb = sum(t['bank']['n'] for t in TOPICS if t.get('bank')); _nt = sum(1 for t in TOPICS if t['problems'])
 _SITES = [('https://feather0000.github.io/eju-calculus/', 'EJU 数学コース2 网站'), ('https://feather0000.github.io/eju-chemistry/', 'EJU 理科 化学 网站'), ('https://feather0000.github.io/eju-biology/', 'EJU 理科 生物 网站')]
@@ -132,6 +214,12 @@ open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="
 <main id="main">
 <section id="chapters" aria-labelledby="h-chapters"><h2 id="h-chapters" class="ct-label">目次<span lang="ja">もくじ</span></h2>
 <ol class="ct-parts">{"".join(_parts)}</ol></section>
+<section id="map" aria-labelledby="h-map"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">图</p><div class="ct-body">
+<h2 id="h-map">知识导图<span class="ct-chja" lang="ja">知識マップ</span></h2>
+<p class="ct-intro">各专题按章节展开；虚线标出专题之间的重要联系，点节点即可进入对应页。</p></div>
+<figure class="mp"><p class="mp-hint" id="mp-hint">图较宽，可左右滑动查看。</p>
+<div class="mp-scroll" role="region" aria-label="知识导图" aria-describedby="mp-hint">{MAPSVG}</div>
+<figcaption id="mp-cap">物理知识导图：中心「物理」分出五章，各章下列讲解专题。虚线所示的联系：<ul class="mp-legend">{MAPLEGEND}</ul></figcaption></figure></div></section>
 <section id="appendix" aria-labelledby="h-appendix"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">附</p><div class="ct-body">
 <h2 id="h-appendix">资料・速查・工具<span class="ct-chja" lang="ja">資料・ツール</span></h2>
 <p class="ct-intro">考前查公式、对术语、找易错点；站内搜索覆盖题目、讲解、公式与数据。</p>
