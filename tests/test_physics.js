@@ -18,6 +18,16 @@ c = P.incline(1, 3, 0, 0, 10); ok('水平光滑 a=m2g/(m1+m2)', c.a, 7.5); ok('�
 c = P.incline(2, 2, Math.PI / 6, 0.2, 9.8); ok('有摩擦 a', c.a, (2 * 9.8 - 2 * 9.8 * 0.5 - 0.2 * 2 * 9.8 * Math.cos(Math.PI / 6)) / 4);
 c = P.incline(2, 0.9, Math.PI / 6, 0.2, 9.8); ok('静摩擦足够 a=0', c.a, 0);
 c = P.incline(4, 0.5, Math.PI / 6, 0.1, 9.8); ok('m1 下滑 a', c.a, (0.5 * 9.8 - 4 * 9.8 * 0.5 + 0.1 * 4 * 9.8 * Math.cos(Math.PI / 6)) / 4.5);
+/* 运动中的连接体与一维滑动（抓取/抛出后的续动） */
+c = P.inclineAt(2, 2, Math.PI / 6, 0.2, 0, 9.8); ok('inclineAt v=0 同 incline', c.a, P.incline(2, 2, Math.PI / 6, 0.2, 9.8).a);
+c = P.inclineAt(2, 0.5, Math.PI / 6, 0.2, 1, 9.8); ok('上滑中 摩擦沿斜面向下 a', c.a, (0.5 * 9.8 - 2 * 9.8 * 0.5 - 0.2 * 2 * 9.8 * Math.cos(Math.PI / 6)) / 2.5); ok('上滑中 张力 m2(g-a)', c.T, 0.5 * (9.8 - c.a));
+c = P.inclineAt(2, 0.5, Math.PI / 6, 0.2, -1, 9.8); ok('下滑中 摩擦沿斜面向上 a', c.a, (0.5 * 9.8 - 2 * 9.8 * 0.5 + 0.2 * 2 * 9.8 * Math.cos(Math.PI / 6)) / 2.5);
+s = { x: 0, v: 2 }; for (i = 0; i < 600; i++) { var r1 = P.slide1D(s.x, s.v, 0, 0.5, 0.01); s = { x: r1.x, v: r1.v }; }
+ok('滑动 停止距离 v²/(2μg)', s.x, 4, 1e-9); ok('滑动 停住后 v=0', s.v, 0);
+c = P.slide1D(0, 1, -2, 0.5, 1); ok('过零后反向 x', c.x, 0.2 - 0.5 * 1.5 * 0.36, 1e-12); ok('过零后反向 v', c.v, -0.9, 1e-12);
+c = P.slide1D(0, 0, 1, 1.2, 0.5); ok('静摩擦足够 不动', c.x + c.v, 0);
+var M = 4, aD = (2 * 9.8 - 2 * 9.8 * 0.5) / M, aF = 0.2 * 2 * 9.8 * Math.cos(Math.PI / 6) / M;
+ok('滑动 从静止 a = incline().a', P.slide1D(0, 0, aD, aF, 0.1).a, P.incline(2, 2, Math.PI / 6, 0.2, 9.8).a);
 /* v-t 面积 */
 var nd = [[0, 0], [2, 4], [4, 4], [6, -2]];
 ok('v-t 面积 位移', P.vtX(nd, 6), 4 + 8 + 1.5 * 4 / 2 * 0 + (4 + -2) / 2 * 2); ok('v-t 路程', P.vtDist(nd, 6), 4 + 8 + 4 * (4 / 6) * 2 / 2 + 2 * (2 / 6) * 2 / 2, 1e-3);
