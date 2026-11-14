@@ -206,15 +206,15 @@
         D.drawBlock(c, gx, gy, bw, bw, C.c1, { angle: -a, label: 'm₁' });
         D.drawWeight(c, hx, hy, bw2, bw2, C.c3, { label: 'm₂' });
         /* 受力（1 N ≈ k px）：运动中按动摩擦，静止时按静摩擦 */
-        var cur = P.inclineAt(m1.v, m2.v, a, mu.v, held ? 0 : vel), k = 2.6 * sc, gg = 9.8, na = held || pinned, mov = !held && vel !== 0;
-        arrow(c, gx, gy, gx, gy + m1.v * gg * k, C.warn, 2, 'm₁g'); arrow(c, gx, gy, gx + nrm[0] * cur.N * k, gy + nrm[1] * cur.N * k, C.good, 2, 'N');
-        var hc = hy + 2 + bw2 / 2; arrow(c, hx, hc, hx, hc + m2.v * gg * k, C.warn, 2, 'm₂g');
+        var cur = P.inclineAt(m1.v, m2.v, a, mu.v, held ? 0 : vel), k = 2.6 * Math.max(sc, 0.8), gg = 9.8, na = held || pinned, mov = !held && vel !== 0, lp = W < 520 ? 19 : 14; /* 窄屏：力箭头不再按画面缩短，标签离箭头稍远，避免挤在一起 */
+        arrow(c, gx, gy, gx, gy + m1.v * gg * k, C.warn, 2, 'm₁g', lp); arrow(c, gx, gy, gx + nrm[0] * cur.N * k, gy + nrm[1] * cur.N * k, C.good, 2, 'N', lp);
+        var hc = hy + 2 + bw2 / 2; arrow(c, hx, hc, hx, hc + m2.v * gg * k, C.warn, 2, 'm₂g', lp);
         if (!na) {
-          arrow(c, gx, gy, gx + u[0] * cur.T * k, gy + u[1] * cur.T * k, C.c2, 2, 'T');
-          if (Math.abs(cur.f) > 1e-6) arrow(c, gx - nrm[0] * bw / 2, gy - nrm[1] * bw / 2, gx - nrm[0] * bw / 2 + u[0] * cur.f * k, gy - nrm[1] * bw / 2 + u[1] * cur.f * k, C.c4, 2, 'f');
-          arrow(c, hx, hc, hx, hc - cur.T * k, C.c2, 2, 'T');
+          arrow(c, gx, gy, gx + u[0] * cur.T * k, gy + u[1] * cur.T * k, C.c2, 2, 'T', lp);
+          if (Math.abs(cur.f) > 1e-6) arrow(c, gx - nrm[0] * bw / 2, gy - nrm[1] * bw / 2, gx - nrm[0] * bw / 2 + u[0] * cur.f * k, gy - nrm[1] * bw / 2 + u[1] * cur.f * k, C.c4, 2, 'f', lp);
+          arrow(c, hx, hc, hx, hc - cur.T * k, C.c2, 2, 'T', lp);
         }
-        if (!d.grabbed) D.hint(c, '可直接抓住 m₁ 或 m₂ 拖动、推出', 10, 14);
+        if (!d.grabbed) D.hint(c, '可直接抓住 m₁ 或 m₂ 拖动、推出', 10, W < 520 ? g.fy - 14 : 14); /* 窄屏放到台面下，免得压住 N 的标签 */
         var dir = function (v) { return v > 0 ? 'm₂ 下降，m₁ 沿斜面上滑' : 'm₁ 沿斜面下滑，m₂ 上升'; };
         var st = held ? '手持中（松手后从当时的速度开始按受力运动）' : pinned ? '到达端点被挡住，稍后回到起点' : mov ? dir(vel) + (cur.a * vel < 0 ? '（减速中）' : '')
           : cur.state === 'static' ? '静止（静摩擦力 ' + fx(Math.abs(cur.f), 2) + ' N 足以平衡）' : dir(cur.a);
@@ -224,30 +224,56 @@
       } };
   });
 
-  /* ④ 曲面上的能量：拖动小球到释放点 */
+  /* ④ 曲面上的能量：抓住小球放到释放点，或沿轨道推出去（松手速度沿切线的分量 = 初速度） */
   D.reg('energy', function () {
     var f = function (x) { return 0.2 * x * x; }, df = function (x) { return 0.4 * x; }, d2 = function () { return 0.4; };
-    var m, st = { x: -4, v: 0 }, x0 = -4, mu, mass = 1;
+    var m, st = { x: -4, v: 0 }, x0 = -4, v0 = 0, mu, mass = 1, BR = 9, XM = 4.8, held = false, tm = 0, roll = 0, lastP = null, ghost = D.trail(9, 0.08), ball = [0, 0];
+    function vmax(x) { return Math.sqrt(Math.max(0, 2 * P.g * (f(XM) - f(x)))); } /* 不冲出轨道两端（x = ±4.8 m）的最大速率 */
+    function E0() { return mass * P.g * f(x0) + 0.5 * mass * v0 * v0; }
+    function nrm(x) { /* 屏幕上曲面的单位法线（指向上方）；x、y 方向比例尺不同，要按屏幕斜率算 */
+      var sx = (m.R - m.L) / (m.x1 - m.x0), sy = (m.B - m.T) / (m.y1 - m.y0), tx = sx, ty = -sy * df(x), L = Math.hypot(tx, ty); return [ty / L, -tx / L];
+    }
+    function centre(x) { var n = nrm(x); return [m.X(x) + n[0] * BR, m.Y(f(x)) + n[1] * BR]; }
+    function along(vx, vy, x) { var yp = df(x); return (m.dx(vx) + m.dy(vy) * yp) / Math.sqrt(1 + yp * yp); } /* 手势速度（px/s）→ 沿轨道切线的速度（m/s） */
+    function release() { st = { x: x0, v: v0 }; ghost.clear(); }
     return { aspect: 1.6, animated: true,
       init: function (d) {
-        mu = d.slider('动摩擦系数 μ', 0, 0.3, 0.01, 0, function (v) { return fx(v, 2); }, function () { st = { x: x0, v: 0 }; });
-        d.button('重新释放', function () { st = { x: x0, v: 0 }; });
-        d.handle({ get: function () { return [m.X(st.x), m.Y(f(st.x)) - 9]; }, set: function (X) { x0 = Math.max(-4.8, Math.min(4.8, m.ix(X))); st = { x: x0, v: 0 }; } });
+        mu = d.slider('动摩擦系数 μ', 0, 0.3, 0.01, 0, function (v) { return fx(v, 2); }, release);
+        d.button('重新释放', release);
+        d.grab({ r: BR, get: function () { return ball; },
+          start: function () { held = true; },
+          set: function (X) { var x = m.ix(X); x = m.ix(X - nrm(x)[0] * BR); x0 = D.clamp(x, -XM, XM); st = { x: x0, v: 0 }; },
+          release: function (vx, vy) { held = false; var lim = vmax(x0); v0 = D.clamp(along(vx, vy, x0), -lim, lim); if (Math.abs(v0) < 0.05) v0 = 0; release(); } });
       },
       resize: function (d) { var R = d.W * 0.66; m = Map(-5, 5, -0.3, 5.3, 16, R, 26, d.H - 18); },
-      step: function (d, dt) { if (d.dragging()) return; for (var i = 0; i < 10; i++) st = P.trackStep(st, f, df, d2, mu.v, dt / 10); },
+      step: function (d, dt) {
+        tm += dt;
+        if (held) { var gv = d.grabVel(), lim = vmax(st.x); st.v = D.clamp(along(gv[0], gv[1], st.x), -lim, lim); return; }
+        for (var i = 0; i < 10; i++) st = P.trackStep(st, f, df, d2, mu.v, dt / 10);
+        if (Math.abs(st.v) > 0.05) ghost.push(tm, st.x);
+      },
       draw: function (d, c) {
-        var pts = []; for (var i = 0; i <= 120; i++) { var x = -5 + i / 12; pts.push([m.X(x), m.Y(f(x))]); }
-        c.save(); c.beginPath(); pts.forEach(function (p, i) { i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); }); c.lineTo(m.R, m.B + 10); c.lineTo(m.L, m.B + 10); c.closePath(); c.fillStyle = C['surface-2']; c.fill(); c.restore();
-        line(c, pts, C['ink-3'], 2);
-        line(c, [[m.X(-5), m.Y(f(x0))], [m.X(5), m.Y(f(x0))]], C['ink-3'], 1, [5, 5]); txt(c, '释放高度', m.X(0), m.Y(f(x0)) - 9, C['ink-3'], '11px system-ui,"PingFang SC","Hiragino Sans","Noto Sans CJK SC","Noto Serif CJK SC",sans-serif');
-        var X = m.X(st.x), Y = m.Y(f(st.x)), yp = df(st.x), q = Math.sqrt(1 + yp * yp);
-        dot(c, X - 9 * yp / q * -1 * 0, Y - 9, 9, C.c1);
-        if (Math.abs(st.v) > 0.05) arrow(c, X, Y - 9, X + st.v / q * 10, Y - 9 - st.v * yp / q * 10, C.c2, 2, 'v');
-        var g = 9.8, K = 0.5 * mass * st.v * st.v, U = mass * g * f(st.x), E0 = mass * g * f(x0), Q = Math.max(0, E0 - K - U);
-        bars(c, d.W * 0.7, 36, d.W * 0.28, d.H - 80, [['K', K, C.c2], ['U', U, C.c1], ['热 Q', Q, C.warn], ['合计', K + U + Q, C['ink-3']]], E0 * 1.02 || 1, '能量 [J]（m = 1 kg）');
-        d.out([['高度 y', fx(f(st.x), 2) + ' m'], ['速率 v', fx(Math.abs(st.v), 2) + ' m/s'], ['动能 K', fx(K, 1) + ' J'], ['重力势能 U', fx(U, 1) + ' J'], ['摩擦生热', fx(Q, 1) + ' J'], ['K+U', fx(K + U, 1) + ' J']],
-          'μ = 0 时力学能守恒 K + U = mgh₀，小球回到同一高度；有摩擦时减少的力学能等于摩擦生热（摩擦力做的负功），注意曲面上 N 还含向心项 mv²/r。');
+        var pts = [], i, x; for (i = 0; i <= 120; i++) { x = -5 + i / 12; pts.push([m.X(x), m.Y(f(x))]); }
+        /* 木质曲面轨道 + 实验台 */
+        D.ground(c, 6, m.R + 10, m.B + 10, { kind: 'floor' });
+        c.save(); c.beginPath(); pts.forEach(function (p, i) { i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); }); c.lineTo(m.R, m.B + 10); c.lineTo(m.L, m.B + 10); c.closePath();
+        c.fillStyle = D.woodPattern(c, 0); c.fill(); var sg = c.createLinearGradient(0, m.T, 0, m.B + 10); sg.addColorStop(0, 'rgba(255,255,255,.16)'); sg.addColorStop(1, 'rgba(0,0,0,.18)'); c.fillStyle = sg; c.fill(); c.restore();
+        line(c, pts, C.dark ? '#c4c9d2' : '#8c929c', 4); line(c, pts, C.dark ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.8)', 1.2);
+        var hE = E0() / (mass * P.g), mov = v0 !== 0 && !held; /* 力学能对应的高度 E/mg（μ = 0 时小球能到达的最高点） */
+        line(c, [[m.X(-5), m.Y(hE)], [m.X(5), m.Y(hE)]], C['ink-3'], 1, [5, 5]);
+        txt(c, mov ? '能量对应高度 E/mg' : '释放高度', m.X(0), m.Y(hE) - 9, C['ink-3'], '11px ' + D.FONT);
+        /* 小球（滚动标记 = 屏幕弧长 / r）与频闪残影 */
+        ghost.each(function (gx, _, k) { var q = centre(gx); D.drawBall(c, q[0], q[1], BR, C.c1, { flat: true, alpha: 0.2 * k }); });
+        ball = centre(st.x); if (lastP) roll += Math.hypot(ball[0] - lastP[0], ball[1] - lastP[1]) * (st.v >= 0 ? 1 : -1) / BR; lastP = ball;
+        D.drawBall(c, ball[0], ball[1], BR, C.c1, { spin: roll });
+        var yp = df(st.x), q = Math.sqrt(1 + yp * yp), X = ball[0], Y = ball[1];
+        if (Math.abs(st.v) > 0.05) arrow(c, X, Y, X + st.v / q * 10, Y - st.v * yp / q * 10, C.c2, 2, 'v');
+        if (!d.grabbed) D.hint(c, '可抓住小球：慢放＝从该处静止释放，沿轨道甩出＝带初速度', 10, 12);
+        var g = 9.8, K = 0.5 * mass * st.v * st.v, U = mass * g * f(st.x), E = held ? K + U : E0(), Q = Math.max(0, E - K - U);
+        bars(c, d.W * 0.7, 36, d.W * 0.28, d.H - 80, [['K', K, C.c2], ['U', U, C.c1], ['热 Q', Q, C.warn], ['合计', K + U + Q, C['ink-3']]], E * 1.02 || 1, '能量 [J]（m = 1 kg）');
+        d.out([['高度 y', fx(f(st.x), 2) + ' m'], ['速率 v', fx(Math.abs(st.v), 2) + ' m/s'], ['动能 K', fx(K, 1) + ' J'], ['重力势能 U', fx(U, 1) + ' J'], ['摩擦生热', fx(Q, 1) + ' J'], ['K+U', fx(K + U, 1) + ' J'],
+          ['释放时 (x₀, v₀)', held ? '手持中' : '(' + fx(x0, 2) + ' m, ' + fx(v0, 2) + ' m/s)']],
+          'μ = 0 时力学能守恒 K + U = mgh₀ + ½mv₀²，小球回到同一高度（虚线 E/mg）；有摩擦时减少的力学能等于摩擦生热（摩擦力做的负功），注意曲面上 N 还含向心项 mv²/r。可直接抓住小球：慢慢松手＝从该处静止释放；沿轨道甩出＝手势速度沿切线的分量（按画面比例换算，轨道宽 10 m、真实时间）作为初速度 v₀，上限为不冲出轨道两端的速率。');
       } };
   });
 
