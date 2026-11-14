@@ -1,4 +1,4 @@
-import importlib.util, glob, os, json, html, sys
+import importlib.util, glob, os, json, html, sys, math
 open('assets/demos.js','w').write(''.join(open(f).read() for f in ['assets/physics.js']+sorted(glob.glob('demos_src/*.js'))))
 sys.path.insert(0,"content")
 TOPICS=[]
@@ -112,86 +112,218 @@ _D = next(t for t in TOPICS if t['slug'] == 'demos')
 _CH_AREAS = {c[0] for c in CHAPTERS}
 _appx = ''.join(_entry(t, f'互动演示总览（{t["demo_count"]} 个）', '全部演示一览') if t['slug'] == 'demos' else _entry(t)
                 for t in TOPICS if t['area'] not in _CH_AREAS)
-# MAP：知识导图（内联 SVG，无脚本）。中心→五章→各章讲解专题，从 CHAPTERS / TOPICS 生成；虚线联系写在 XLINKS 里，
-# 路由按坐标自动选（相邻用格间短线、同章用右侧括线、跨章走空白处的折线），走不通就报错，免得画出压字的图。颜色全用 CSS 变量
+# MAP：知识导图 v4（内联 SVG，像古典星图）。中心「物理」，内圈五章（扇区角按专题数分配，单专题章有最小扇区），外圈各章讲解专题；
+# 树枝是填充的锥形三次贝塞尔，虚线联系走中心同心的「轨道」弧。坐标全从 CHAPTERS / TOPICS / XLINKS / MAPF 算，
+# 末尾做几何检查（框、插图、标签、树枝、弧互不压），不过就报错退出，免得画出压字的图。颜色全用 CSS 变量（site.css 首页目次块）
 XLINKS = [  # (slug, slug, 标签)
  ('energy', 'thermal', '能量守恒'), ('circular-shm', 'waves', '简谐振动与波'), ('waves', 'sound', '机械波'), ('waves', 'light', '波动光学'),
  ('current', 'magnetism', '电流的磁场'), ('magnetism', 'induction-ac', '电磁感应'), ('light', 'atomic', '光电效应'), ('gravitation', 'circular-shm', '圆周运动'),
 ]
+MAPF = {  # 各专题代表式（均见 17_formulas）：_x 下标、^x 上标；拉丁与希腊变量斜体，数字、算符、Δ、½ 直立
+ 'motion': 'v = v_0 + at', 'force': 'F = ma', 'energy': 'K = ½mv^2', 'momentum': 'p = mv', 'circular-shm': 'a = v^2/r',
+ 'gravitation': 'F = GMm/r^2', 'thermal': 'pV = nRT', 'waves': 'v = fλ', 'sound': 'f = mv/(2L)', 'light': '1/a + 1/b = 1/f',
+ 'electric-field': 'E = kQ/r^2', 'current': 'V = RI', 'magnetism': 'F = IBℓ', 'induction-ac': 'V = −N ΔΦ/Δt', 'atomic': 'E = hν',
+}
+_IT = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZλνΦℓ')
 def _tw(s, fs): return sum(fs if ord(ch) > 0x2E7F else fs * .58 for ch in s)
+def _fml(s, x, y):  # 公式 → <text>/<tspan>；上下标用 dy 升降（Firefox 不认 tspan 的 baseline-shift），之后归位
+    runs, i = [], 0
+    while i < len(s):
+        c = s[i]
+        if c in '_^': runs.append((c, s[i + 1])); i += 2; continue
+        k = 'i' if c in _IT else 'r'
+        if runs and runs[-1][0] == k: runs[-1] = (k, runs[-1][1] + c)
+        else: runs.append((k, c))
+        i += 1
+    out, cur, w = [], 0, 0
+    for k, t in runs:
+        want = {'_': 4, '^': -6.5}.get(k, 0); cls = {'i': 'mp-fi', '_': 'mp-fs', '^': 'mp-fs'}.get(k)
+        out.append('<tspan' + (f' class="{cls}"' if cls else '') + (f' dy="{want - cur:g}"' if want != cur else '') + f'>{html.escape(t)}</tspan>')
+        cur = want; w += len(t) * (.4 if k in '_^' else .56)
+    return f'<text class="mp-f" x="{x:.1f}" y="{y:.1f}" text-anchor="middle">{"".join(out)}</text>', w
+# 线描插图：(x, y) 是左上角，s 是边长；只有细线，个别小点实心
+def _ico(x, y, s, cls, body): return f'<g class="mp-ic {cls}" aria-hidden="true">{body(lambda u, v: f"{x + u * s:.1f} {y + v * s:.1f}")}</g>'
+def _icon_incline(x, y, s, cls):  # 斜面 + 滑块 + 地面剖线 + 倾角弧
+    def b(P):
+        a = math.atan2(.54, .88); d, n = (math.cos(a), math.sin(a)), (math.sin(a), -math.cos(a)); m, k = (.06 + .88 * .42, .3 + .54 * .42), .24
+        q = [(m[0] - d[0] * k / 2, m[1] - d[1] * k / 2), (m[0] + d[0] * k / 2, m[1] + d[1] * k / 2)]; q += [(q[1][0] + n[0] * k, q[1][1] + n[1] * k), (q[0][0] + n[0] * k, q[0][1] + n[1] * k)]
+        r = .17; e = (.94 - r * math.cos(a), .84 - r * math.sin(a))
+        return (f'<path d="M{P(.06, .84)}L{P(.94, .84)}L{P(.06, .3)}Z"/><path d="M{P(*q[0])}' + ''.join(f'L{P(*p)}' for p in q[1:]) + 'Z"/>'
+                f'<path class="mp-thin" d="' + ''.join(f'M{P(u, .84)}L{P(u - .07, .95)}' for u in (.16, .3, .44, .58, .72, .86)) + f'"/>'
+                f'<path class="mp-thin" d="M{P(.94 - r, .84)}A{r * s:.1f} {r * s:.1f} 0 0 1 {P(*e)}"/>')
+    return _ico(x, y, s, cls, b)
+def _icon_piston(x, y, s, cls):  # 气缸（右端开口）+ 活塞 + 活塞杆 + 把手，缸内几粒气体分子
+    return _ico(x, y, s, cls, lambda P: f'<path d="M{P(.68, .28)}H{x + .08 * s:.1f}V{y + .76 * s:.1f}H{x + .68 * s:.1f}"/>'
+                f'<path d="M{P(.46, .3)}H{x + .53 * s:.1f}V{y + .74 * s:.1f}H{x + .46 * s:.1f}Z"/><path d="M{P(.53, .52)}H{x + .9 * s:.1f}M{P(.9, .4)}V{y + .64 * s:.1f}"/>'
+                + ''.join(f'<circle class="mp-dot" cx="{x + u * s:.1f}" cy="{y + v * s:.1f}" r="{.022 * s:.2f}"/>' for u, v in ((.17, .4), (.32, .45), (.22, .6), (.37, .65), (.28, .36), (.14, .68))))
+def _icon_wave(x, y, s, cls):  # 两个波长的正弦波 + 基线 + 波长标尺 λ
+    L, A, c = .42, .19, .58
+    return _ico(x, y, s, cls, lambda P: f'<path class="mp-thin" d="M{P(.04, c)}H{x + .96 * s:.1f}"/><path d="M{P(.08, c)}'
+                + ''.join(f'L{P(.08 + .84 * i / 64, c - A * math.sin(2 * math.pi * .84 * i / 64 / L))}' for i in range(1, 65)) + '"/>'
+                f'<path class="mp-thin" d="M{P(.185, .3)}H{x + .605 * s:.1f}M{P(.185, .26)}V{y + .34 * s:.1f}M{P(.605, .26)}V{y + .34 * s:.1f}"/>'
+                f'<text class="mp-it" x="{x + .395 * s:.1f}" y="{y + .25 * s:.1f}" text-anchor="middle">λ</text>')
+def _icon_magnet(x, y, s, cls):  # 条形磁铁（N | S）+ 上下各两条磁力线、两侧轴线，箭头 N→S
+    def chev(u, v, dx): return f'M{P_(u - dx, v - .035)}L{P_(u, v)}L{P_(u - dx, v + .035)}'
+    P_ = lambda u, v: f'{x + u * s:.1f} {y + v * s:.1f}'
+    return _ico(x, y, s, cls, lambda P: f'<path d="M{P(.22, .41)}H{x + .78 * s:.1f}V{y + .59 * s:.1f}H{x + .22 * s:.1f}Z M{P(.5, .41)}V{y + .59 * s:.1f}"/>'
+                f'<path class="mp-thin" d="M{P(.22, .45)}C{P(.02, .05)} {P(.98, .05)} {P(.78, .45)}M{P(.26, .41)}C{P(.22, .2)} {P(.78, .2)} {P(.74, .41)}'
+                f'M{P(.22, .55)}C{P(.02, .95)} {P(.98, .95)} {P(.78, .55)}M{P(.26, .59)}C{P(.22, .8)} {P(.78, .8)} {P(.74, .59)}'
+                f'M{P(.22, .5)}H{x + .03 * s:.1f}M{P(.78, .5)}H{x + .97 * s:.1f}{chev(.53, .15, .04)}{chev(.53, .85, .04)}{chev(.08, .5, -.04)}{chev(.89, .5, -.04)}"/>'
+                f'<text class="mp-pole" x="{x + .36 * s:.1f}" y="{y + .535 * s:.1f}" text-anchor="middle">N</text><text class="mp-pole" x="{x + .64 * s:.1f}" y="{y + .535 * s:.1f}" text-anchor="middle">S</text>')
+def _icon_atom(x, y, s, cls):  # 玻尔模型：原子核 + 两圈轨道 + 电子
+    c = (x + s / 2, y + s / 2); e = lambda r, a: (c[0] + r * s * math.cos(math.radians(a)), c[1] + r * s * math.sin(math.radians(a)))
+    return _ico(x, y, s, cls, lambda P: f'<circle cx="{c[0]:.1f}" cy="{c[1]:.1f}" r="{.07 * s:.1f}"/><circle class="mp-thin" cx="{c[0]:.1f}" cy="{c[1]:.1f}" r="{.24 * s:.1f}"/>'
+                f'<circle class="mp-thin" cx="{c[0]:.1f}" cy="{c[1]:.1f}" r="{.44 * s:.1f}"/>'
+                + ''.join(f'<circle class="mp-dot" cx="{px:.1f}" cy="{py:.1f}" r="{.04 * s:.1f}"/>' for px, py in (e(.24, -50), e(.44, 160), e(.44, 30))))
+_ICONS = [_icon_incline, _icon_piston, _icon_wave, _icon_magnet, _icon_atom]
 def _map():
-    W, X0, CW, CHY, CHH, TY, TP, TH, LF = 960, 12, 188, 96, 54, 178, 70, 44, 12.5
-    cols = [[t for t in TOPICS if t['area'] == a and t['problems']] for a, _, _ in CHAPTERS]
-    box, where = {}, {}
-    for c, ts in enumerate(cols):
-        w = max([88] + [round(_tw(t['zh'], 15)) + 26 for t in ts])
-        for r, t in enumerate(ts):
-            box[t['slug']] = (X0 + c * CW + 26, TY + r * TP, w, TH); where[t['slug']] = (c, r)
-    cx = X0 + 2 * CW + 74
-    obst = [(x - 4, y - 4, w + 8, h + 8) for x, y, w, h in box.values()] + [(X0 + c * CW, CHY, 148, CHH) for c in range(5)] + [(cx - 66, 6, 132, 50)]
-    spines = [(X0 + c * CW + 11, CHY + CHH, 2, box[ts[-1]['slug']][1] + TH / 2 - CHY - CHH) for c, ts in enumerate(cols) if ts]
-    def hit(r1, r2): return r1[0] < r2[0] + r2[2] and r2[0] < r1[0] + r1[2] and r1[1] < r2[1] + r2[3] and r2[1] < r1[1] + r1[3]
-    def segs(pts): return [(min(a[0], b[0]) - .5, min(a[1], b[1]) - .5, abs(a[0] - b[0]) + 1, abs(a[1] - b[1]) + 1) for a, b in zip(pts, pts[1:])]
-    used, lab, paths, band = [], [], [], [0]
-    def free(rs, extra=()): return not any(hit(r, o) for r in rs for o in list(extra) + used)
-    def place(pts, s, fixed=None):
-        lw, cands = _tw(s, LF) + 4, []
-        if fixed: cands = [fixed]
-        for a, b in sorted(zip(pts, pts[1:]), key=lambda p: -abs(p[0][0] - p[1][0]) - abs(p[0][1] - p[1][1])):
-            for f in (.5, .35, .65, .2, .8):
-                x, y = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
-                cands += [(x + 6, y - 8, 'start'), (x - 6, y - 8, 'end')] if a[0] == b[0] else [(x - lw / 2, y - 21, 'start'), (x - lw / 2, y + 5, 'start')]
-        for x, y, anc in cands:
-            r = (x if anc == 'start' else x - lw, y, lw, 16)
-            if fixed or free([r], obst + spines):
-                used.append(r); lab.append((x, y + 12, anc, s)); return
-        raise SystemExit(f'导图：放不下虚线标签「{s}」')
-    for a, b, s in XLINKS:
-        if a not in box or b not in box: print('map: skip link', a, b); continue
-        (ca, ra), (cb, rb) = where[a], where[b]
-        if (ca, ra) > (cb, rb): a, b, ca, ra, cb, rb = b, a, cb, rb, ca, ra
-        A, B = box[a], box[b]; pts = None
-        others = [o for k, o in zip(box, obst) if k not in (a, b)] + obst[len(box):]
-        if ca == cb and rb == ra + 1:  # 相邻：两格之间一小段竖线
-            x = A[0] + 30; pts = [(x, A[1] + A[3]), (x, B[1])]
-            paths.append(pts); used.extend(segs(pts)); place(pts, s, (x + 7, A[1] + A[3] + (TP - TH) / 2 - 8, 'start')); continue
-        if ca == cb:  # 同章隔行：右侧括线
-            xb = max(box[t['slug']][0] + box[t['slug']][2] for t in cols[ca][ra:rb + 1]) + 12
-            cand = [[(A[0] + A[2], A[1] + TH / 2), (xb, A[1] + TH / 2), (xb, B[1] + TH / 2), (B[0] + B[2], B[1] + TH / 2)]]
-        else:
-            bx, ax = B[0] + B[2] / 2, A[0] + A[2] / 2
-            low = max([A[1], B[1]] + [box[t['slug']][1] for c in range(ca + 1, cb) for t in cols[c]]) + TH + (TP - TH) / 2
-            cand = []
-            if rb != ra: cand.append([(A[0] + A[2], A[1] + TH / 2), (bx, A[1] + TH / 2), (bx, B[1] + (TH if rb < ra else 0))])
-            cand.append([(ax, A[1] + TH), (ax, low), (bx, low), (bx, B[1] + TH)])
-            xv, yb = X0 + cb * CW - 18 - 8 * band[0], (CHY + CHH + TY) / 2 - 4 * band[0]
-            cand.append([(A[0] + A[2], A[1] + TH / 2), (xv, A[1] + TH / 2), (xv, yb), (bx, yb), (bx, B[1])])
-        for c in cand:
-            ss = segs(c)
-            if free(ss[1:-1], others) and free(ss[:1] + ss[-1:], others):
-                pts = c; break
-        if not pts: raise SystemExit(f'导图：{a}–{b} 找不到不压字的走线')
-        if pts[2][1] == (CHY + CHH + TY) / 2 - 4 * band[0]: band[0] += 1
-        paths.append(pts); used.extend(segs(pts)); place(pts, s)
+    W, H, CX, CY = 1160, 1240, 580, 598
+    R0, R1, R2, NR, IS, LIM = 58, 208, 348, 42, 58, 546  # 中心圆、章环、专题环、章节点半径、插图边长、外圈刻度
+    FN, FF, FL, BH, GAP = 18, 16, 15.5, 58, 11  # 专题名字号、公式字号、联系标签字号、专题框高、框离星点
+    LANES = [324, 305, 286]  # 联系弧走的同心轨道（外→内），都在章节点外缘 R1+NR 与专题环之间
     E = html.escape
-    out = [f'<svg class="mp-svg" viewBox="0 0 {W} {TY + max(len(c) for c in cols) * TP + 6}" aria-label="物理知识导图">',
-           '<g class="mp-tree" aria-hidden="true">', f'<path d="M{cx} 56V78M{X0 + 74} 78H{X0 + 4 * CW + 74}' + ''.join(f'M{X0 + c * CW + 74} 78V{CHY}' for c in range(5)) + '"/>']
+    rad = math.radians
+    def pol(r, a): return (CX + r * math.sin(rad(a)), CY - r * math.cos(rad(a)))
+    def ang(p): return math.degrees(math.atan2(p[0] - CX, CY - p[1])) % 360
+    def f(p): return f'{p[0]:.1f} {p[1]:.1f}'
+    def bez(p, t): return tuple((1 - t) ** 3 * p[0][i] + 3 * (1 - t) ** 2 * t * p[1][i] + 3 * (1 - t) * t * t * p[2][i] + t ** 3 * p[3][i] for i in (0, 1))
+    def samp(p, n=80): return [bez(p, i / n) for i in range(n + 1)]
+    def taper(p, h0, h1):  # 锥形树枝：两条近似偏移的三次曲线在尖端收拢成填充路径（Tiller–Hanson 近似）
+        def nrm(a, b):
+            dx, dy = b[0] - a[0], b[1] - a[1]; l = math.hypot(dx, dy) or 1; return (-dy / l, dx / l)
+        n0, n3 = nrm(p[0], p[1] if p[1] != p[0] else p[3]), nrm(p[2], p[3]); hs = [h0, h0 + (h1 - h0) / 3, h0 + 2 * (h1 - h0) / 3, h1]; ns = [n0, n0, n3, n3]
+        L = [(q[0] + n[0] * h, q[1] + n[1] * h) for q, n, h in zip(p, ns, hs)]; R = [(q[0] - n[0] * h, q[1] - n[1] * h) for q, n, h in zip(p, ns, hs)]
+        return f'M{f(L[0])}C{f(L[1])} {f(L[2])} {f(L[3])}L{f(R[3])}C{f(R[2])} {f(R[1])} {f(R[0])}Z'
+    # 扇区：权重 = max(专题数, 最小值) + 间隔；力学居右（专题框竖排有余地），其余顺时针排开
+    cols = [[t for t in TOPICS if t['area'] == a and t['problems']] for a, _, _ in CHAPTERS]
+    wt = [max(len(ts), 1.5) + .4 for ts in cols]; unit = 360 / sum(wt)
+    a0 = 90 - wt[0] * unit / 2; sec = []
+    for w in wt: sec.append((a0, a0 + w * unit)); a0 += w * unit
+    chA = [(s + e) / 2 for s, e in sec]
+    tA, tC, box, star, twig = {}, {}, {}, {}, {}
     for c, ts in enumerate(cols):
-        if ts: x = X0 + c * CW + 12; out.append(f'<path d="M{x} {CHY + CHH}V{box[ts[-1]["slug"]][1] + TH / 2:g}' + ''.join(f'M{x} {box[t["slug"]][1] + TH / 2:g}H{box[t["slug"]][0]}' for t in ts) + '"/>')
-    out.append('</g><g class="mp-x" aria-hidden="true">' + ''.join(f'<path d="M{p[0][0]:g} {p[0][1]:g}' + ''.join(f'L{x:g} {y:g}' for x, y in p[1:]) + '"/>' for p in paths)
-               + ''.join(f'<text x="{x:g}" y="{y:g}" text-anchor="{anc}">{E(s)}</text>' for x, y, anc, s in lab) + '</g>')
-    out.append(f'<a href="#chapters" aria-label="物理：回到目次"><title>物理 · 物理</title><rect class="mp-box mp-root" x="{cx - 66}" y="6" width="132" height="50"/><text class="mp-rt" x="{cx}" y="40" text-anchor="middle">物理</text></a>')
-    for c, ((area, ja, _), ts) in enumerate(zip(CHAPTERS, cols)):
-        x = X0 + c * CW
-        out.append(f'<a href="#ch-{c + 1}" aria-label="第 {c + 1} 章 {area}，{len(ts)} 个专题"><title lang="ja">第 {c + 1} 章 · {ja}</title><rect class="mp-box mp-chb" x="{x}" y="{CHY}" width="148" height="{CHH}"/>'
-                   f'<text class="mp-ch" x="{x + 74}" y="{CHY + 25}" text-anchor="middle">{E(area)}</text><text class="mp-sub" x="{x + 74}" y="{CHY + 44}" text-anchor="middle">第 {c + 1} 章 · {len(ts)} 个专题</text></a>')
-        for t in ts:
-            bx, by, bw, bh = box[t['slug']]
-            out.append(f'<a href="topics/{t["slug"]}/" aria-label="{t["n"]:02d} {E(t["zh"])}"><title lang="ja">{E(t["ja"])}</title><rect class="mp-box" x="{bx}" y="{by}" width="{bw}" height="{bh}"/>'
-                       f'<text class="mp-t" x="{bx + 13}" y="{by + 27}">{E(t["zh"])}</text></a>')
-    out.append('</svg>')
+        for i, t in enumerate(ts): tA[t['slug']] = chA[c] + (i - (len(ts) - 1) / 2) * unit; tC[t['slug']] = c
+    for sl, a in tA.items():  # 专题框：沿径向放在星点外侧（矩形支撑函数），框宽按题名和公式宽度
+        t = next(t for t in TOPICS if t['slug'] == sl); P = pol(R2, a); star[sl] = P
+        w = max(_tw(t['zh'], FN), _fml(MAPF[sl], 0, 0)[1] * FF) + 30
+        u = (math.sin(rad(a)), -math.cos(rad(a))); d = GAP + abs(u[0]) * w / 2 + abs(u[1]) * BH / 2
+        box[sl] = (P[0] + u[0] * d - w / 2, P[1] + u[1] * d - BH / 2, w, BH)
+        c = tC[sl]; Q = pol(R1, chA[c]); da = a - chA[c]
+        twig[sl] = (Q, pol(R1 + .32 * (R2 - R1), chA[c] + .55 * da), pol(R2 - .5 * (R2 - R1), a), P)
+    chP = [pol(R1, a) for a in chA]
+    trunk = [(pol(0, a), pol(.4 * R1, a - 7), pol(.72 * R1, a - 2), pol(R1, a)) for a in chA]
+    # 几何对象：每样东西 = (种类, 归属, 形状)；形状是矩形或采样点
+    def rhit(a, b, m=0): return a[0] - m < b[0] + b[2] and b[0] - m < a[0] + a[2] and a[1] - m < b[1] + b[3] and b[1] - m < a[1] + a[3]
+    def pin(p, r, m=0): return r[0] - m < p[0] < r[0] + r[2] + m and r[1] - m < p[1] < r[1] + r[3] + m
+    curves = [('trunk', c, samp(p)) for c, p in enumerate(trunk)] + [('twig', sl, samp(p)) for sl, p in twig.items()]
+    rects = [('box', sl, b) for sl, b in box.items()] + [('node', c, (p[0] - NR, p[1] - NR, 2 * NR, 2 * NR)) for c, p in enumerate(chP)] + [('root', None, (CX - R0, CY - R0, 2 * R0, 2 * R0))]
+    # 插图：放在内圈（中心圆与章环之间），本章树干旁；从候选位置里挑第一个不压任何东西的
+    icon = []
+    for c, a in enumerate(chA):
+        for r, da in [(r, s * da) for da in (24, 28, 20, 32) for s in (1, -1) for r in (132, 122, 142)]:
+            p = pol(r, a + da); rc = (p[0] - IS / 2, p[1] - IS / 2, IS, IS)
+            if any(rhit(rc, o[2], 8) for o in rects + icon): continue
+            if any(pin(q, rc, 7) for _, _, pts in curves for q in pts): continue
+            icon.append(('icon', c, rc)); break
+        else: raise SystemExit(f'导图：第 {c + 1} 章的插图放不下')
+    rects += icon
+    # 联系弧：两端星点 → 平滑转入某条同心轨道 → 沿圆弧走 → 转出到另一端。短的先挑外轨道；标签沿弧写（textPath），挑没有树枝穿过的一段
     nm = {t['slug']: t['zh'] for t in TOPICS}
-    legend = ''.join(f'<li><a href="topics/{a}/">{E(nm[a])}</a> — <a href="topics/{b}/">{E(nm[b])}</a>：{E(s)}</li>' for a, b, s in XLINKS if a in box and b in box)
+    xl, lanes_used, labels = [], {r: [] for r in LANES}, []
+    def lab_hits(rl, lo, hi, pts):  # 标签所占的环形扇区里有没有点
+        for q in pts:
+            r = math.hypot(q[0] - CX, q[1] - CY)
+            if rl - 11 < r < rl + 11 and (ang(q) - lo) % 360 < (hi - lo) % 360: return True
+        return False
+    order = sorted([x for x in XLINKS if x[0] in tA and x[1] in tA], key=lambda x: min((tA[x[1]] - tA[x[0]]) % 360, (tA[x[0]] - tA[x[1]]) % 360))
+    for a, b, s in XLINKS:
+        if a not in tA or b not in tA: print('map: skip link', a, b)
+    tree = [q for _, _, ps in curves for q in ps]
+    def windows(x, others):  # 某条弧上可放标签的起始角，按离弧中点的远近排（尽量避开左右两侧，那里字会竖起来）
+        a, b, s, ta, span, rl, dl, lw = x[:8]
+        lo_, hi_ = ta + dl / 2 + .5, ta + span - dl / 2 - .5 - lw; mid = ta + span / 2 - lw / 2
+        for lo in sorted([lo_ + (hi_ - lo_) * i / 40 for i in range(41)], key=lambda v: abs(v - mid) + 25 * (abs(math.sin(rad(v + lw / 2))) > .8)):
+            if not lab_hits(rl, lo % 360, (lo + lw) % 360, others): yield lo
+    for a, b, s in order:  # 第一步：分轨道（短弧优先占外轨；同一轨道只许首尾相接；要留得下标签且那段没有树枝）
+        if (tA[b] - tA[a]) % 360 > 180: a, b = b, a
+        ta, span = tA[a], (tA[b] - tA[a]) % 360
+        for rl in LANES:
+            if any(((s2 - ta) % 360 < span - .5) or ((ta - s2) % 360 < (e2 - s2) % 360 - .5) for s2, e2 in lanes_used[rl]): continue
+            dl = math.degrees((R2 - rl) * .75 / rl); lw = math.degrees((_tw(s, FL) + 8) / rl)
+            if span - dl < lw + 1: continue
+            A, B = star[a], star[b]; Qa, Qb = pol(rl, ta + dl), pol(rl, ta + span - dl)
+            ca = (A, pol(R2 - .55 * (R2 - rl), ta), pol(rl, ta + .5 * dl), Qa); cb = (Qb, pol(rl, ta + span - .5 * dl), pol(R2 - .55 * (R2 - rl), ta + span), B)
+            pts = samp(ca, 40) + [pol(rl, ta + dl + (span - 2 * dl) * i / 120) for i in range(121)] + samp(cb, 40)
+            x = [a, b, s, ta, span, rl, dl, lw, f'M{f(A)}C{f(ca[1])} {f(ca[2])} {f(Qa)}A{rl} {rl} 0 0 1 {f(Qb)}C{f(cb[1])} {f(cb[2])} {f(B)}', pts]
+            if next(windows(x, tree), None) is None: continue
+            lanes_used[rl].append((ta % 360, (ta + span) % 360)); xl.append(x); break
+        else: raise SystemExit(f'导图：{a}–{b} 的联系弧找不到轨道')
+    for x in sorted(xl, key=lambda x: x[4] - x[6]):  # 第二步：所有弧定下后再放标签（避开树枝、别的弧、已放的标签）
+        others = tree + [q for y in xl if y is not x for q in y[9]]
+        for lo in windows(x, others):
+            if any(abs(L[0] - x[5]) < 25 and ((lo - L[1]) % 360 < (L[2] - L[1]) % 360 + 2 or (L[1] - lo) % 360 < x[7] + 2) for L in labels): continue  # 相邻轨道的标签不上下叠
+            labels.append((x[5], lo % 360, (lo + x[7]) % 360, x[2], x[0], x[1])); break
+        else: raise SystemExit(f'导图：放不下联系标签「{x[2]}」')
+    xl = [(x[0], x[1], x[2], x[8], x[5], x[9]) for x in xl]
+    if not (R1 + NR + 2 < LANES[-1] - 11 and LANES[0] + 11 < R2 - 5): raise SystemExit('导图：联系标签的环带会压到章节点或星点')  # 框在 R2+GAP 之外、插图在 R1 之内，与标签环带天然分开
+    # 总检查：框与框、框/节点/插图与所有曲线、框不出图框
+    allpts = [(k, o, q) for k, o, ps in curves for q in ps] + [('xl', (x[0], x[1]), q) for x in xl for q in x[5]]
+    for i, (k1, o1, r1) in enumerate(rects):
+        if not pin((r1[0], r1[1]), (40, 40, W - 80, H - 130)) or not pin((r1[0] + r1[2], r1[1] + r1[3]), (40, 40, W - 80, H - 130)): raise SystemExit(f'导图：{k1} {o1} 超出图框')
+        for k2, o2, r2 in rects[i + 1:]:
+            if rhit(r1, r2, 6): raise SystemExit(f'导图：{k1} {o1} 与 {k2} {o2} 重叠')
+        for k, o, q in allpts:
+            own = (k1 == 'box' and o == o1) or (k1 == 'node' and k in ('trunk', 'twig') and (o == o1 or (k == 'twig' and tC[o] == o1))) or (k1 == 'root' and k == 'trunk')
+            if not own and pin(q, r1, 2 if k == 'xl' else 3): raise SystemExit(f'导图：{k} {o} 穿过 {k1} {o1}')
+    far = [(k, o, [q for q in ps if all(math.hypot(q[0] - p[0], q[1] - p[1]) > NR + 2 for p in chP + [(CX, CY)])]) for k, o, ps in curves]
+    for i, (k1, o1, p1) in enumerate(far):  # 节点之外，树干、树枝互不相碰
+        for k2, o2, p2 in far[i + 1:]:
+            if any(abs(q[0] - p[0]) < 3 and abs(q[1] - p[1]) < 3 for q in p1 for p in p2): raise SystemExit(f'导图：{k1} {o1} 与 {k2} {o2} 相碰')
+    for i, (_, sl, ps) in enumerate(c for c in curves if c[0] == 'twig'):  # 联系弧不得长段贴着树枝走
+        for x in xl:
+            if sl in x[:2]: continue
+            run, prev = 0, None
+            for q in x[5]:  # 弧与树枝相距 < 3 的连续长度；正交穿过约 6–8，顺着走会远超 16
+                close = any(math.hypot(q[0] - p[0], q[1] - p[1]) < 3 for p in ps)
+                run = run + math.hypot(q[0] - prev[0], q[1] - prev[1]) if close and prev else 0
+                prev = q if close else None
+                if run > 16: raise SystemExit(f'导图：{x[0]}–{x[1]} 的弧贴着 {sl} 的树枝走')
+    # 输出
+    out = [f'<svg class="mp-svg" viewBox="0 0 {W} {H}" aria-labelledby="mp-svgt"><title id="mp-svgt">物理知识导图</title>', '<g class="mp-grid" aria-hidden="true">']
+    out.append(''.join(f'<circle cx="{CX}" cy="{CY}" r="{r}"/>' for r in (R0 + 30, 160, R1, 280, R2, 420, 490)) + f'<circle class="mp-lim" cx="{CX}" cy="{CY}" r="{LIM}"/><circle class="mp-lim" cx="{CX}" cy="{CY}" r="{LIM - 9}"/>')
+    out.append('<path d="' + ''.join(f'M{f(pol(R0 + 8, a))}L{f(pol(LIM - 9, a))}' for a in range(0, 360, 30)) + ''.join(f'M{f(pol(LIM - 9, a))}L{f(pol(LIM - (0 if a % 30 == 0 else 4 if a % 10 else 1.5), a))}' for a in range(0, 360, 5)) + '"/></g>')
+    m1, m2 = 14, 21
+    out.append(f'<g class="mp-frame" aria-hidden="true"><rect x="{m1}" y="{m1}" width="{W - 2 * m1}" height="{H - 2 * m1}"/><rect class="mp-thin" x="{m2}" y="{m2}" width="{W - 2 * m2}" height="{H - 2 * m2}"/><path class="mp-thin" d="'
+               + ''.join(f'M{x0 + sx * 30} {y0 + sy * 54}V{y0 + sy * 30}H{x0 + sx * 54}' for x0, y0, sx, sy in ((0, 0, 1, 1), (W, 0, -1, 1), (0, H, 1, -1), (W, H, -1, -1))) + '"/>'
+               + ''.join(f'<rect class="mp-cn" x="{x0 - 5}" y="{y0 - 5}" width="10" height="10"/><rect class="mp-cnd" x="{x0 - 2}" y="{y0 - 2}" width="4" height="4"/>' for x0 in ((m1 + m2) / 2, W - (m1 + m2) / 2) for y0 in ((m1 + m2) / 2, H - (m1 + m2) / 2)))
+    cy2 = H - 64; ja, zh = '図　物理の体系', f'物理知识体系　{len(CHAPTERS)} 章 · {sum(len(c) for c in cols)} 个专题'; hw = _tw(ja, 19) * 1.2 / 2 + 22
+    out.append(f'<path class="mp-thin" d="M{CX - hw - 70:.0f} {cy2 - 6}H{CX - hw:.0f}M{CX - hw - 70:.0f} {cy2 - 2}H{CX - hw:.0f}M{CX + hw:.0f} {cy2 - 6}H{CX + hw + 70:.0f}M{CX + hw:.0f} {cy2 - 2}H{CX + hw + 70:.0f}"/>'
+               f'<text class="mp-cap" x="{CX}" y="{cy2}" text-anchor="middle" lang="ja">{ja}</text><text class="mp-cap2" x="{CX}" y="{cy2 + 26}" text-anchor="middle">{E(zh)}</text></g>')
+    out.append('<defs>' + ''.join(  # 标签路径：上半圈顺时针、下半圈逆时针，文字始终正着读；半径错开半个字高让字居中压在弧上
+        (lambda rl, lo, hi, m, flip: f'<path id="mp-lp{i}" d="M{f(pol(rl + (5 if flip else -5), hi if flip else lo))}A{rl + (5 if flip else -5)} {rl + (5 if flip else -5)} 0 0 {0 if flip else 1} {f(pol(rl + (5 if flip else -5), lo if flip else hi))}"/>')
+        (L[0], L[1], L[2], 0, 90 < (L[1] + ((L[2] - L[1]) % 360) / 2) % 360 < 270) for i, L in enumerate(labels)) + '</defs>')
+    lab_of = {(L[4], L[5]): i for i, L in enumerate(labels)}
+    out.append('<g class="mp-xls" aria-hidden="true">' + ''.join(
+        f'<g class="mp-d mp-xl" data-a="{a}" data-b="{b}"><path d="{d}"/><text><textPath href="#mp-lp{lab_of[(a, b)]}" startOffset="50%" text-anchor="middle">{E(s)}</textPath></text></g>' for a, b, s, d, rl, _ in xl) + '</g>')
+    for c, ((area, ja_, _), ts) in enumerate(zip(CHAPTERS, cols)):
+        k = c + 1; cls = f'mp-c{k}'; ix = icon[c][2]
+        out.append(f'<g class="mp-br {cls}">')
+        out.append(f'<path class="mp-d mp-tr" data-ch="{k}" aria-hidden="true" d="{taper(trunk[c], 3.2, 1.7)}"/>')
+        out += [f'<path class="mp-d mp-tw" data-ch="{k}" data-slug="{t["slug"]}" aria-hidden="true" d="{taper(twig[t["slug"]], 1.6, .35)}"/>' for t in ts]
+        out.append(_ICONS[c](ix[0], ix[1], IS, 'mp-d').replace('<g class="mp-ic mp-d"', f'<g class="mp-ic mp-d" data-ch="{k}"', 1))
+        p = chP[c]
+        out.append(f'<a class="mp-d mp-chn" data-ch="{k}" href="#ch-{k}" aria-label="第 {k} 章 {area}，{len(ts)} 个专题"><title lang="ja">第 {k} 章 · {ja_}</title>'
+                   f'<circle class="mp-nb" cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="{NR}"/><circle class="mp-nr" cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="{NR - 4}"/>'
+                   f'<text class="mp-chk" x="{p[0]:.1f}" y="{p[1] - 11:.1f}" text-anchor="middle">第 {k} 章</text><text class="mp-ch" x="{p[0]:.1f}" y="{p[1] + 16:.1f}" text-anchor="middle">{E(area)}</text></a>')
+        for t in ts:
+            sl = t['slug']; bx, by, bw, bh = box[sl]; P = star[sl]
+            out.append(f'<a class="mp-d mp-tn" data-ch="{k}" data-slug="{sl}" href="topics/{sl}/" aria-label="{t["n"]:02d} {E(t["zh"])}：{E(MAPF[sl].replace("_0", "₀").replace("^2", "²"))}"><title lang="ja">{E(t["ja"])}</title>'
+                       f'<circle class="mp-star" cx="{P[0]:.1f}" cy="{P[1]:.1f}" r="3.4"/><rect class="mp-box" x="{bx:.1f}" y="{by:.1f}" width="{bw:.1f}" height="{bh}"/>'
+                       f'<text class="mp-t" x="{bx + bw / 2:.1f}" y="{by + 25:.1f}" text-anchor="middle">{E(t["zh"])}</text>{_fml(MAPF[sl], bx + bw / 2, by + 47)[0]}</a>')
+        out.append('</g>')
+    out.append(f'<a class="mp-root" href="#chapters" aria-label="物理：回到目次"><title lang="ja">物理</title><circle class="mp-rb" cx="{CX}" cy="{CY}" r="{R0}"/><circle class="mp-rr" cx="{CX}" cy="{CY}" r="{R0 - 5}"/>'
+               f'<text class="mp-rt" x="{CX + 4}" y="{CY + 10}" text-anchor="middle">物理</text></a></svg>')
+    legend = ''.join(f'<li><a href="topics/{a}/">{E(nm[a])}</a> — <a href="topics/{b}/">{E(nm[b])}</a>：{E(s)}</li>' for a, b, s in XLINKS if a in tA and b in tA)
     return ''.join(out), legend
 MAPSVG, MAPLEGEND = _map()
 RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td class="num">{t["bank"]["n"]}</td><td class="stars">{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
@@ -216,10 +348,10 @@ open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="
 <ol class="ct-parts">{"".join(_parts)}</ol></section>
 <section id="map" aria-labelledby="h-map"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">图</p><div class="ct-body">
 <h2 id="h-map">知识导图<span class="ct-chja" lang="ja">知識マップ</span></h2>
-<p class="ct-intro">各专题按章节展开；虚线标出专题之间的重要联系，点节点即可进入对应页。</p></div>
+<p class="ct-intro">中心「物理」分出五章，每章一色，外圈是各章的讲解专题和一条代表式；虚线弧标出专题之间的重要联系。点节点即可进入对应页。</p></div>
 <figure class="mp"><p class="mp-hint" id="mp-hint">图较宽，可左右滑动查看。</p>
 <div class="mp-scroll" role="region" aria-label="知识导图" aria-describedby="mp-hint">{MAPSVG}</div>
-<figcaption id="mp-cap">物理知识导图：中心「物理」分出五章，各章下列讲解专题。虚线所示的联系：<ul class="mp-legend">{MAPLEGEND}</ul></figcaption></figure></div></section>
+<figcaption id="mp-cap">物理知识导图：中心「物理」分出五章，各章外圈列讲解专题与代表式。虚线弧所示的联系：<ul class="mp-legend">{MAPLEGEND}</ul></figcaption></figure></div></section>
 <section id="appendix" aria-labelledby="h-appendix"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">附</p><div class="ct-body">
 <h2 id="h-appendix">资料・速查・工具<span class="ct-chja" lang="ja">資料・ツール</span></h2>
 <p class="ct-intro">考前查公式、对术语、找易错点；站内搜索覆盖题目、讲解、公式与数据。</p>
@@ -231,7 +363,7 @@ open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="
 </main>
 <footer class="ct-foot"><p class="ct-sites">姊妹站：{"".join(f'<a href="{u}">{a}</a>' for u, a in _SITES)}</p><p>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</p></footer>
 </div>
-{TOGGLEJS}<script src="assets/nav.js"></script></body></html>''')
+{TOGGLEJS}<script src="assets/map.js"></script><script src="assets/nav.js"></script></body></html>''')
 # 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
 open('404.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
 {HEADJS}<title>页面不存在 · {SITE_NAME}</title><meta name="robots" content="noindex"><link rel="icon" href="{SITE_PATH}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{SITE_PATH}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{SITE_PATH}assets/apple-touch-icon.png">

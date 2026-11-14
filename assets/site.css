@@ -652,29 +652,69 @@ body.contents {
 @media (prefers-reduced-motion: reduce) {
   .contents a, .ct-zh { transition: none; }
 }
-/* 知识导图（#map）：书里的结构图——实线是章节树，虚线（物理蓝）是专题之间的联系；节点只有描边和下划线的变化 */
+/* 知识导图（#map）v4：像一张印在纸上的古典星图。中心「物理」，内圈五章、外圈专题；每章一色（日本传统色，浅深两套），
+   树枝是填充的锥形曲线，章旁细线插图，专题框写一条代表式；同心轨道上的虚线弧是专题间的联系。不用渐变、发光、阴影与位移，
+   悬停 / 聚焦只把无关分支调淡（assets/map.js 加 .mp-off），过渡只有 opacity */
+body.contents {
+  --mp-1: #2b4a7d; --mp-2: #ae422b; --mp-3: #2e6a47; --mp-4: #8a6220; --mp-5: #6a4f87;  /* 紺・緋・常磐・黄土・江戸紫 */
+  --mp-grid: color-mix(in srgb, var(--ink) 11%, transparent); --mp-frame: var(--ink-2);
+  --mp-math: "STIX Two Text", "Cambria Math", "Times New Roman", Times, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body.contents { --mp-1: #93acd8; --mp-2: #df8a70; --mp-3: #86b894; --mp-4: #cfa75e; --mp-5: #b59fce; --mp-grid: color-mix(in srgb, var(--ink) 8%, transparent); }
+}
+[data-theme="dark"] body.contents { --mp-1: #93acd8; --mp-2: #df8a70; --mp-3: #86b894; --mp-4: #cfa75e; --mp-5: #b59fce; --mp-grid: color-mix(in srgb, var(--ink) 8%, transparent); }
+#map .mp-c1 { --c: var(--mp-1); } #map .mp-c2 { --c: var(--mp-2); } #map .mp-c3 { --c: var(--mp-3); } #map .mp-c4 { --c: var(--mp-4); } #map .mp-c5 { --c: var(--mp-5); }
 .contents .mp { grid-column: 1 / -1; margin: var(--s-6) 0 0; }
 .contents .mp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
-.contents .mp-svg { display: block; width: 100%; height: auto; min-width: 56rem; }
+.contents .mp-svg { display: block; width: 100%; height: auto; min-width: 58rem; }
 .contents .mp-hint { display: none; margin: 0 0 var(--s-2); font-size: 13.5px; color: var(--ink-3); }
-.contents .mp-tree path { fill: none; stroke: var(--ink-3); stroke-width: 1; }
-.contents .mp-x path { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 5 4; }
-.contents .mp-x text { fill: var(--accent); font: 12.5px var(--sans); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
-.contents .mp-box { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1; transition: stroke var(--dur) var(--ease); }
-.contents .mp-chb { stroke: var(--ink-2); }
-.contents .mp-root { stroke: var(--ink); stroke-width: 1.5; }
-.contents .mp-t { fill: var(--ink); font: 15px var(--sans); }
-.contents .mp-ch { fill: var(--ink); font: 700 19px var(--serif); letter-spacing: .06em; }
-.contents .mp-rt { fill: var(--ink); font: 700 24px var(--serif); letter-spacing: .3em; }
-.contents .mp-sub { fill: var(--ink-3); font: 12.5px var(--sans); }
-.contents .mp-svg a, .contents .mp-svg a text { text-decoration: none; }
-.contents .mp-svg a:hover .mp-box, .contents .mp-svg a:focus-visible .mp-box { stroke: var(--accent); stroke-width: 1.5; }
-.contents .mp-svg a:hover text:not(.mp-sub), .contents .mp-svg a:focus-visible text:not(.mp-sub) { fill: var(--accent); text-decoration: underline; }
-.contents .mp-svg a:focus-visible { outline: none; }
-.contents .mp-svg a:focus-visible .mp-box { stroke-width: 2.5; }
+/* 图版：赤纬圈、每 30° 的经线、外圈 5° 刻度；双线框与四角小方块；框内下缘的图注 */
+#map .mp-grid circle, #map .mp-grid path { fill: none; stroke: var(--mp-grid); stroke-width: .5; }
+#map .mp-grid .mp-lim { stroke-width: .7; }
+#map .mp-frame rect { fill: none; stroke: var(--mp-frame); stroke-width: 1.1; }
+#map .mp-frame .mp-thin, #map .mp-frame path { fill: none; stroke: var(--mp-frame); stroke-width: .5; }
+#map .mp-frame .mp-cn { fill: var(--bg); stroke-width: .8; }
+#map .mp-frame .mp-cnd { fill: var(--mp-frame); stroke: none; }
+#map .mp-cap { fill: var(--ink-2); font: 700 19px var(--serif); letter-spacing: .35em; }
+#map .mp-cap2 { fill: var(--ink-3); font: 14px var(--sans); letter-spacing: .14em; }
+/* 树：树干、树枝都是填充路径；插图只有细线 */
+#map .mp-tr, #map .mp-tw { fill: var(--c); stroke: none; }
+#map .mp-ic path, #map .mp-ic circle { fill: none; stroke: var(--c); stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; }
+#map .mp-ic .mp-thin { stroke-width: .75; }
+#map .mp-ic .mp-dot { fill: var(--c); stroke: none; }
+#map .mp-ic text { fill: var(--c); stroke: none; }
+#map .mp-it { font: italic 13px var(--mp-math); }
+#map .mp-pole { font: 600 9.5px var(--sans); }
+/* 节点：章是双圈小圆章，专题是细框；字一律墨色，章名用本章色 */
+#map .mp-nb { fill: var(--bg); stroke: var(--c); stroke-width: 1.2; }
+#map .mp-nr { fill: none; stroke: var(--c); stroke-width: .5; }
+#map .mp-ch { fill: var(--c); font: 700 22px var(--serif); letter-spacing: .06em; }
+#map .mp-chk { fill: var(--ink-3); font: 13px var(--sans); letter-spacing: .08em; }
+#map .mp-star { fill: var(--c); }
+#map .mp-box { fill: var(--bg); stroke: var(--c); stroke-width: 1; }
+#map .mp-t { fill: var(--ink); font: 18px var(--sans); }
+#map .mp-f { fill: var(--ink-3); font: 16px var(--mp-math); }
+#map .mp-fi { font-style: italic; }
+#map .mp-fs { font-size: 11px; }
+#map .mp-rb { fill: var(--bg); stroke: var(--accent); stroke-width: 1.3; }
+#map .mp-rr { fill: none; stroke: var(--accent); stroke-width: .5; }
+#map .mp-rt { fill: var(--ink); font: 700 30px var(--serif); letter-spacing: .2em; }
+/* 联系：中性灰虚线弧，标签沿弧书写，底色描边断开虚线 */
+#map .mp-xl path { fill: none; stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 5 4; }
+#map .mp-xl text { fill: var(--ink-2); font: 15.5px var(--sans); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+/* 交互：链接不加下划线；悬停 / 聚焦时框线加粗、字取本章色；无关的分支与弧调淡 */
+#map .mp-svg a, #map .mp-svg a text { text-decoration: none; }
+#map .mp-svg a:focus-visible { outline: none; }
+#map .mp-tn:hover .mp-box, #map .mp-tn:focus-visible .mp-box, #map .mp-chn:hover .mp-nb, #map .mp-chn:focus-visible .mp-nb, #map .mp-root:hover .mp-rb, #map .mp-root:focus-visible .mp-rb { stroke-width: 2; }
+#map .mp-tn:focus-visible .mp-box, #map .mp-chn:focus-visible .mp-nb, #map .mp-root:focus-visible .mp-rb { stroke-width: 2.6; }
+#map .mp-tn:hover .mp-t, #map .mp-tn:focus-visible .mp-t { fill: var(--c); text-decoration: underline; }
+#map .mp-root:hover .mp-rt, #map .mp-root:focus-visible .mp-rt { fill: var(--accent); }
+#map .mp-d { transition: opacity 140ms linear; }
+#map .mp-off { opacity: .32; }
 .contents .mp figcaption { margin: var(--s-4) 0 0; font-size: 14px; line-height: 1.8; color: var(--ink-2); }
 .contents .mp-legend { list-style: none; margin: var(--s-1) 0 0; padding: 0; columns: 2 18rem; column-gap: var(--ct-gap); }
 .contents .mp-legend li { margin: 0; break-inside: avoid; }
-@media (max-width: 60rem) { .contents .mp-hint { display: block; } }
-@media (prefers-reduced-motion: reduce) { .contents .mp-box { transition: none; } }
+@media (max-width: 62rem) { .contents .mp-hint { display: block; } .contents .mp-svg { min-width: 64rem; } }
+@media (prefers-reduced-motion: reduce) { #map .mp-d { transition: none; } }
 /* ==== /物理站首页目次 ==== */
