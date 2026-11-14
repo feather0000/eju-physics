@@ -41,7 +41,21 @@ if _TIPS:
             t['sections'] = [s for s in t['sections'] if s[0] != 'tips']
             _s = tip_backsec(t['slug'], _TIPS)
             if _s: t['sections'].append(_s)
+# THEME-JS：头脚本（首次绘制前定主题并同步 <meta name="color-scheme">）与主题切换（四站同一份）
+HEADJS = """<script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="color-scheme"]'),t=null;try{t=localStorage.getItem('eju-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);if(m)m.content=t})()</script>"""
+TOGGLEJS = """<script>(function(){var d=document.documentElement,b=document.getElementById('theme');if(!b)return;function s(t){d.setAttribute('data-theme',t);var m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=t;b.textContent=t==='dark'?'浅色':'深色';b.setAttribute('aria-label',t==='dark'?'切换到浅色主题':'切换到深色主题')}s(d.getAttribute('data-theme')==='dark'?'dark':'light');b.onclick=function(){var t=d.getAttribute('data-theme')==='dark'?'light':'dark';s(t);try{localStorage.setItem('eju-theme',t)}catch(e){}};addEventListener('storage',function(e){if(e.key==='eju-theme'&&(e.newValue==='light'||e.newValue==='dark'))s(e.newValue)});var q=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)');if(q&&q.addEventListener)q.addEventListener('change',function(e){var v=null;try{v=localStorage.getItem('eju-theme')}catch(_){}if(v!=='light'&&v!=='dark')s(e.matches?'dark':'light')})})();</script>"""
+# SITE-META：每站主色（<html data-site>）、favicon、OG / Twitter 分享卡片（og:image 用绝对 URL）、共用交互脚本
+SITE = 'physics'; SITE_NAME = 'EJU 理科 物理'; SITE_PATH = '/eju-physics/'; SITE_URL = 'https://feather0000.github.io' + SITE_PATH
+SITE_DESC = '按 JASSO《日本留学試験 理科シラバス（物理）》编排：力学・热・波动・电磁气・原子。每页含要点讲解（中文 + 日语术语）、关键公式、原创例题和带解答的 EJU 风格选择题。'
+def headmeta(title, desc, path, root):
+    t, d = html.escape(title), html.escape(html.unescape(desc))
+    return (f'<meta name="description" content="{d}">'
+            f'<link rel="icon" href="{root}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{root}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{root}assets/apple-touch-icon.png">\n'
+            f'<meta property="og:type" content="website"><meta property="og:site_name" content="{SITE_NAME}"><meta property="og:locale" content="zh_CN"><meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{SITE_URL}{path}">'
+            f'<meta property="og:image" content="{SITE_URL}assets/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="{SITE_NAME} · 全专题中文讲义">'
+            f'<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{t}"><meta name="twitter:description" content="{d}"><meta name="twitter:image" content="{SITE_URL}assets/og.png">\n')
 def page(t):
+    meta = headmeta(f'{SITE_NAME} · {t["n"]} {t["zh"]}', t["lead"], f'topics/{t["slug"]}/', '../../')
     toc=[(sid,tt) for sid,tt,_,_ in t['sections']]+([('demo','互动演示')] if DEMOS.get(t['slug']) else [])+([('examples','例题')] if t['examples'] else [])+([('practice','练习题')] if t['problems'] else [])+([('terms','术语对照')] if t['terms'] else [])
     tochtml=''.join(f'<li><a href="#{i}">{k+1} {tt}</a></li>' for k,(i,tt) in enumerate(toc))
     secs=''.join(f'<section id="{sid}"><h2>{tt}</h2><p class="jp-sub">{jp}</p>{body}</section>' for sid,tt,jp,body in t['sections'])
@@ -51,38 +65,181 @@ def page(t):
         opts=''.join(f'<li>{MARK[j]} {o}</li>' for j,o in enumerate(p['opts']))
         pr+=(f'<article class="q" id="p{k+1}"><div class="q-head"><b>问 {k+1}</b>{'<span class="origin hf">原创 · 过去问高频题型</span>' if p.get("new") else '<span class="origin">原创 · EJU 风格</span>'}</div><p>{p["q"]}</p><ol class="opts">{opts}</ol>'
              f'<details><summary>解答</summary><div class="ans"><p><strong>正解：{MARK[p["ans"]]}</strong></p>{p["sol"]}</div></details></article>')
-    terms=''.join(f'<tr><td>{a}</td><td>{b}</td><td class="kana">{c}</td></tr>' for a,b,c in t['terms'])
+    terms=''.join(f'<tr><td>{a}</td><td lang="ja">{b}</td><td class="kana" lang="ja">{c}</td></tr>' for a,b,c in t['terms'])
     hero=''.join(f'$${h}$$' for h in t['hero'])
     EX=f'''<section id="examples"><h2>例题</h2><p class="jp-sub">例題</p>{ex}</section>''' if t['examples'] else ''
     PR=f'''<section id="practice"><h2>练习题</h2><p class="jp-sub">練習問題（{len(t["problems"])} 题，选择题；取 $g=9.8\\,\\mathrm{{m/s^2}}$，另有说明除外）</p>{pr}</section>''' if t['problems'] else ''
     TE=f'''<section id="terms"><h2>术语对照</h2><p class="jp-sub">用語</p><div class="tw"><table><tr><th>中文</th><th>日本語</th><th>读法</th></tr>{terms}</table></div></section>''' if t['terms'] else ''
-    return f'''<!DOCTYPE html><html lang="zh-CN"><head><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>EJU 理科 物理 · {t["n"]} {t["zh"]}</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/demos.js?v=3"></script>
-<link rel="stylesheet" href="../../assets/site.css"><script>try{{var t=localStorage.getItem('eju-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script></head><body>
+    return f'''<!DOCTYPE html><html lang="zh-CN" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="color-scheme" content="light dark">
+{HEADJS}<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<title>EJU 理科 物理 · {t["n"]} {t["zh"]}</title>{meta}<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous" referrerpolicy="no-referrer">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/eju-ux.js"></script><script defer src="../../assets/demos.js?v=3"></script>
+<link rel="stylesheet" href="../../assets/site.css"></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
 <header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="../../">← 目录</a></p><p class="eyebrow">EJU 理科 物理 · {t["area"]} · {t["ja"]}</p><h1>{t["n"]} {t["zh"]}</h1><p class="lead">{t["lead"]}</p></div><div class="hero-formula" aria-hidden="true">{hero}</div></div></header>
 <div class="layout"><nav class="toc" aria-label="目录"><div style="flex:1;min-width:0"><p class="toc-title">目录</p><ol>{tochtml}</ol></div><button class="chip theme-btn" id="theme" type="button">深色</button></nav>
 <main id="main">{secs}{demosec(t)}{EX}{PR}{TE}
 <footer>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</footer></main></div>
-<script>(function(){{var b=document.getElementById('theme');function s(t){{document.documentElement.setAttribute('data-theme',t);b.textContent=t==='dark'?'浅色':'深色'}}s(document.documentElement.getAttribute('data-theme')||'light');b.onclick=function(){{var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';s(t);try{{localStorage.setItem('eju-theme',t)}}catch(e){{}}}};
+{TOGGLEJS}<script>(function(){{
 var L=[].slice.call(document.querySelectorAll('nav.toc a'));if('IntersectionObserver'in window){{var io=new IntersectionObserver(function(es){{es.forEach(function(e){{if(e.isIntersecting)L.forEach(function(a){{a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id)}})}})}},{{rootMargin:'-20% 0px -70% 0px'}});document.querySelectorAll('main section').forEach(function(x){{io.observe(x)}})}}
 window.addEventListener('load',function(){{if(!window.renderMathInElement){{document.getElementById('cdn-note').hidden=false;return}}renderMathInElement(document.body,{{delimiters:[{{left:'$$',right:'$$',display:true}},{{left:'$',right:'$',display:false}}],throwOnError:false}})}})}})();</script>
 <script src="../../assets/nav.js"></script></body></html>'''
 for t in TOPICS:
     os.makedirs(f'topics/{t["slug"]}',exist_ok=True); open(f'topics/{t["slug"]}/index.html','w').write(page(t))
-lis=''.join(f'<li><a href="topics/{t["slug"]}/"><span class="n">{t["n"]} · {t["area"]}</span><b>{t["zh"]}</b><small>{t["ja"]} · {(str(len(t["problems"]))+" 题") if t["problems"] else t.get("sub","常用数据速查")}{(" · 过去问 "+str(t["bank"]["n"])+" 题 "+t["bank"]["stars"]) if t.get("bank") else ""}</small></a></li>' for t in TOPICS)
-RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td style="text-align:right">{t["bank"]["n"]}</td><td>{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
-open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>EJU 理科 物理 全专题讲解</title>
-<style>:root{{--bg:#f8f5ee;--fg:#222;--card:#fffdf8;--line:#ddd6c6;--acc:#1e6b6b}}@media(prefers-color-scheme:dark){{:root{{--bg:#14171e;--fg:#ebe8e0;--card:#1c2029;--line:#363c49;--acc:#79cfcf}}}}
-[data-theme=light]{{--bg:#f8f5ee;--fg:#222;--card:#fffdf8;--line:#ddd6c6;--acc:#1e6b6b;color-scheme:light}}[data-theme=dark]{{--bg:#14171e;--fg:#ebe8e0;--card:#1c2029;--line:#363c49;--acc:#79cfcf;color-scheme:dark}}
-body{{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,"PingFang SC","Noto Sans CJK SC",sans-serif}}main{{max-width:900px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))}}
-ol{{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}}li a{{display:flex;flex-direction:column;min-height:44px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;color:inherit;text-decoration:none}}li a:hover{{border-color:var(--acc)}}
-.n{{color:var(--acc);font-weight:700;font-size:13px}}small{{opacity:.7}}a{{color:var(--acc)}}#theme{{font:inherit;min-height:44px;padding:4px 16px;border-radius:22px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}}td,th{{border-bottom:1px solid var(--line);padding:6px 8px}}</style>
-<script>try{{var t=localStorage.getItem('eju-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script></head><body><main>
-<h1>EJU 理科 物理 全专题讲解</h1><p>按 JASSO《日本留学試験 理科シラバス（物理）》编排：力学・热・波动・电磁气・原子。每页含要点讲解（中文 + 日语术语）、关键公式、原创例题和带解答的 EJU 风格选择题。</p>
-<p><button id="theme" type="button">切换深浅色</button></p><p style="font-size:18px"><a href="topics/demos/">🎛️ 互动演示总览（{next(t["demo_count"] for t in TOPICS if t["slug"]=="demos")} 个）</a>　<a href="topics/tips/">⚡ 快速解题技巧</a></p><ol>{lis}</ol><h2>过去问出题频度排行</h2><p>依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计（各页开头有详细的「出题频度」表）。</p><div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%"><tr><th style="text-align:left">专题页</th><th style="text-align:left">原题册专题</th><th>题数</th><th>重要度</th></tr>{RANKTBL}</table></div><p><a href="https://feather0000.github.io/eju-calculus/">→ EJU 数学コース2 网站</a>　<a href="https://feather0000.github.io/eju-chemistry/">→ EJU 理科 化学 网站</a>　<a href="https://feather0000.github.io/eju-biology/">→ EJU 理科 生物 网站</a></p></main>
-<script>document.getElementById('theme').onclick=function(){{var d=document.documentElement,c=d.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'),t=c==='dark'?'light':'dark';d.setAttribute('data-theme',t);try{{localStorage.setItem('eju-theme',t)}}catch(e){{}}}}</script><script src="assets/nav.js"></script></body></html>''')
+# HOME：首页目次（像书的目录：左侧章号，右侧章名与专题，点线引到右侧的题数・过去问・星级；附录列资料与工具；最后是过去问频度表）。样式在 site.css 末尾「首页目次」块，无脚本
+CHAPTERS = [  # area：日文名、一句章节提要
+ ('力学', '力学', '从运动学到万有引力：受力分析、能量与动量守恒、圆周运动与简谐振动。'),
+ ('热', '熱', '比热与热平衡、理想气体状态方程、热力学第一定律与热机效率。'),
+ ('波动', '波動', '波的叠加与驻波，弦与气柱、多普勒效应，光的折射、透镜与干涉。'),
+ ('电磁气', '電磁気', '电场与电容器、直流电路、电流的磁场与洛伦兹力、电磁感应与交流。'),
+ ('原子', '原子', '光电效应与物质波、玻尔模型与能级、放射线、半衰期与核反应。'),
+]
+def _stars(s): return f'<span class="stars" aria-label="重要度 {len(s)}/3">{s}</span>'
+def _entry(t, label=None, meta=None):
+    if meta is None:
+        meta = (f'{len(t["problems"])} 题' if t['problems'] else t.get('sub', '常用数据速查')) + (f'<span class="ct-sep"> · </span>过去问 {t["bank"]["n"]} {_stars(t["bank"]["stars"])}' if t.get('bank') else '')
+    return (f'<li><a href="topics/{t["slug"]}/"><span class="ct-n">{t["n"]:02d}</span><span class="ct-t"><span class="ct-zh">{label or t["zh"]}</span>'
+            f'<span class="ct-ja" lang="ja">{t["ja"]}</span></span><span class="ct-dots" aria-hidden="true"></span><span class="ct-m">{meta}</span></a></li>')
+_parts = []
+for k, (area, ja, intro) in enumerate(CHAPTERS, 1):
+    ts = [t for t in TOPICS if t['area'] == area]
+    nb = sum(t['bank']['n'] for t in ts if t.get('bank'))
+    _parts.append(f'<li class="ct-part"><p class="ct-no" aria-hidden="true">{k}</p><div class="ct-body">'
+                  f'<h3 id="ch-{k}"><span class="ct-vh">第 {k} 章　</span>{area}<span class="ct-chja" lang="ja">{ja}</span></h3>'
+                  f'<p class="ct-intro">{intro}<span class="ct-sum">{len(ts)} 个专题 · 过去问 {nb} 题</span></p>'
+                  f'<ol class="ct-list">{"".join(_entry(t) for t in ts)}</ol></div></li>')
+_D = next(t for t in TOPICS if t['slug'] == 'demos')
+_CH_AREAS = {c[0] for c in CHAPTERS}
+_appx = ''.join(_entry(t, f'互动演示总览（{t["demo_count"]} 个）', '全部演示一览') if t['slug'] == 'demos' else _entry(t)
+                for t in TOPICS if t['area'] not in _CH_AREAS)
+# MAP：知识导图（内联 SVG，无脚本）。中心→五章→各章讲解专题，从 CHAPTERS / TOPICS 生成；虚线联系写在 XLINKS 里，
+# 路由按坐标自动选（相邻用格间短线、同章用右侧括线、跨章走空白处的折线），走不通就报错，免得画出压字的图。颜色全用 CSS 变量
+XLINKS = [  # (slug, slug, 标签)
+ ('energy', 'thermal', '能量守恒'), ('circular-shm', 'waves', '简谐振动与波'), ('waves', 'sound', '机械波'), ('waves', 'light', '波动光学'),
+ ('current', 'magnetism', '电流的磁场'), ('magnetism', 'induction-ac', '电磁感应'), ('light', 'atomic', '光电效应'), ('gravitation', 'circular-shm', '圆周运动'),
+]
+def _tw(s, fs): return sum(fs if ord(ch) > 0x2E7F else fs * .58 for ch in s)
+def _map():
+    W, X0, CW, CHY, CHH, TY, TP, TH, LF = 960, 12, 188, 96, 54, 178, 70, 44, 12.5
+    cols = [[t for t in TOPICS if t['area'] == a and t['problems']] for a, _, _ in CHAPTERS]
+    box, where = {}, {}
+    for c, ts in enumerate(cols):
+        w = max([88] + [round(_tw(t['zh'], 15)) + 26 for t in ts])
+        for r, t in enumerate(ts):
+            box[t['slug']] = (X0 + c * CW + 26, TY + r * TP, w, TH); where[t['slug']] = (c, r)
+    cx = X0 + 2 * CW + 74
+    obst = [(x - 4, y - 4, w + 8, h + 8) for x, y, w, h in box.values()] + [(X0 + c * CW, CHY, 148, CHH) for c in range(5)] + [(cx - 66, 6, 132, 50)]
+    spines = [(X0 + c * CW + 11, CHY + CHH, 2, box[ts[-1]['slug']][1] + TH / 2 - CHY - CHH) for c, ts in enumerate(cols) if ts]
+    def hit(r1, r2): return r1[0] < r2[0] + r2[2] and r2[0] < r1[0] + r1[2] and r1[1] < r2[1] + r2[3] and r2[1] < r1[1] + r1[3]
+    def segs(pts): return [(min(a[0], b[0]) - .5, min(a[1], b[1]) - .5, abs(a[0] - b[0]) + 1, abs(a[1] - b[1]) + 1) for a, b in zip(pts, pts[1:])]
+    used, lab, paths, band = [], [], [], [0]
+    def free(rs, extra=()): return not any(hit(r, o) for r in rs for o in list(extra) + used)
+    def place(pts, s, fixed=None):
+        lw, cands = _tw(s, LF) + 4, []
+        if fixed: cands = [fixed]
+        for a, b in sorted(zip(pts, pts[1:]), key=lambda p: -abs(p[0][0] - p[1][0]) - abs(p[0][1] - p[1][1])):
+            for f in (.5, .35, .65, .2, .8):
+                x, y = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
+                cands += [(x + 6, y - 8, 'start'), (x - 6, y - 8, 'end')] if a[0] == b[0] else [(x - lw / 2, y - 21, 'start'), (x - lw / 2, y + 5, 'start')]
+        for x, y, anc in cands:
+            r = (x if anc == 'start' else x - lw, y, lw, 16)
+            if fixed or free([r], obst + spines):
+                used.append(r); lab.append((x, y + 12, anc, s)); return
+        raise SystemExit(f'导图：放不下虚线标签「{s}」')
+    for a, b, s in XLINKS:
+        if a not in box or b not in box: print('map: skip link', a, b); continue
+        (ca, ra), (cb, rb) = where[a], where[b]
+        if (ca, ra) > (cb, rb): a, b, ca, ra, cb, rb = b, a, cb, rb, ca, ra
+        A, B = box[a], box[b]; pts = None
+        others = [o for k, o in zip(box, obst) if k not in (a, b)] + obst[len(box):]
+        if ca == cb and rb == ra + 1:  # 相邻：两格之间一小段竖线
+            x = A[0] + 30; pts = [(x, A[1] + A[3]), (x, B[1])]
+            paths.append(pts); used.extend(segs(pts)); place(pts, s, (x + 7, A[1] + A[3] + (TP - TH) / 2 - 8, 'start')); continue
+        if ca == cb:  # 同章隔行：右侧括线
+            xb = max(box[t['slug']][0] + box[t['slug']][2] for t in cols[ca][ra:rb + 1]) + 12
+            cand = [[(A[0] + A[2], A[1] + TH / 2), (xb, A[1] + TH / 2), (xb, B[1] + TH / 2), (B[0] + B[2], B[1] + TH / 2)]]
+        else:
+            bx, ax = B[0] + B[2] / 2, A[0] + A[2] / 2
+            low = max([A[1], B[1]] + [box[t['slug']][1] for c in range(ca + 1, cb) for t in cols[c]]) + TH + (TP - TH) / 2
+            cand = []
+            if rb != ra: cand.append([(A[0] + A[2], A[1] + TH / 2), (bx, A[1] + TH / 2), (bx, B[1] + (TH if rb < ra else 0))])
+            cand.append([(ax, A[1] + TH), (ax, low), (bx, low), (bx, B[1] + TH)])
+            xv, yb = X0 + cb * CW - 18 - 8 * band[0], (CHY + CHH + TY) / 2 - 4 * band[0]
+            cand.append([(A[0] + A[2], A[1] + TH / 2), (xv, A[1] + TH / 2), (xv, yb), (bx, yb), (bx, B[1])])
+        for c in cand:
+            ss = segs(c)
+            if free(ss[1:-1], others) and free(ss[:1] + ss[-1:], others):
+                pts = c; break
+        if not pts: raise SystemExit(f'导图：{a}–{b} 找不到不压字的走线')
+        if pts[2][1] == (CHY + CHH + TY) / 2 - 4 * band[0]: band[0] += 1
+        paths.append(pts); used.extend(segs(pts)); place(pts, s)
+    E = html.escape
+    out = [f'<svg class="mp-svg" viewBox="0 0 {W} {TY + max(len(c) for c in cols) * TP + 6}" aria-label="物理知识导图">',
+           '<g class="mp-tree" aria-hidden="true">', f'<path d="M{cx} 56V78M{X0 + 74} 78H{X0 + 4 * CW + 74}' + ''.join(f'M{X0 + c * CW + 74} 78V{CHY}' for c in range(5)) + '"/>']
+    for c, ts in enumerate(cols):
+        if ts: x = X0 + c * CW + 12; out.append(f'<path d="M{x} {CHY + CHH}V{box[ts[-1]["slug"]][1] + TH / 2:g}' + ''.join(f'M{x} {box[t["slug"]][1] + TH / 2:g}H{box[t["slug"]][0]}' for t in ts) + '"/>')
+    out.append('</g><g class="mp-x" aria-hidden="true">' + ''.join(f'<path d="M{p[0][0]:g} {p[0][1]:g}' + ''.join(f'L{x:g} {y:g}' for x, y in p[1:]) + '"/>' for p in paths)
+               + ''.join(f'<text x="{x:g}" y="{y:g}" text-anchor="{anc}">{E(s)}</text>' for x, y, anc, s in lab) + '</g>')
+    out.append(f'<a href="#chapters" aria-label="物理：回到目次"><title>物理 · 物理</title><rect class="mp-box mp-root" x="{cx - 66}" y="6" width="132" height="50"/><text class="mp-rt" x="{cx}" y="40" text-anchor="middle">物理</text></a>')
+    for c, ((area, ja, _), ts) in enumerate(zip(CHAPTERS, cols)):
+        x = X0 + c * CW
+        out.append(f'<a href="#ch-{c + 1}" aria-label="第 {c + 1} 章 {area}，{len(ts)} 个专题"><title lang="ja">第 {c + 1} 章 · {ja}</title><rect class="mp-box mp-chb" x="{x}" y="{CHY}" width="148" height="{CHH}"/>'
+                   f'<text class="mp-ch" x="{x + 74}" y="{CHY + 25}" text-anchor="middle">{E(area)}</text><text class="mp-sub" x="{x + 74}" y="{CHY + 44}" text-anchor="middle">第 {c + 1} 章 · {len(ts)} 个专题</text></a>')
+        for t in ts:
+            bx, by, bw, bh = box[t['slug']]
+            out.append(f'<a href="topics/{t["slug"]}/" aria-label="{t["n"]:02d} {E(t["zh"])}"><title lang="ja">{E(t["ja"])}</title><rect class="mp-box" x="{bx}" y="{by}" width="{bw}" height="{bh}"/>'
+                       f'<text class="mp-t" x="{bx + 13}" y="{by + 27}">{E(t["zh"])}</text></a>')
+    out.append('</svg>')
+    nm = {t['slug']: t['zh'] for t in TOPICS}
+    legend = ''.join(f'<li><a href="topics/{a}/">{E(nm[a])}</a> — <a href="topics/{b}/">{E(nm[b])}</a>：{E(s)}</li>' for a, b, s in XLINKS if a in box and b in box)
+    return ''.join(out), legend
+MAPSVG, MAPLEGEND = _map()
+RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td class="num">{t["bank"]["n"]}</td><td class="stars">{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
+_np = sum(len(t['problems']) for t in TOPICS); _nb = sum(t['bank']['n'] for t in TOPICS if t.get('bank')); _nt = sum(1 for t in TOPICS if t['problems'])
+_SITES = [('https://feather0000.github.io/eju-calculus/', 'EJU 数学コース2 网站'), ('https://feather0000.github.io/eju-chemistry/', 'EJU 理科 化学 网站'), ('https://feather0000.github.io/eju-biology/', 'EJU 理科 生物 网站')]
+PREFACE = ('这是按 EJU 理科（物理）大纲整理的中文讲义。建议先按章节读讲解和例题，再做练习；公式速查、易错点和术语对照可以随时翻。'
+           '各页开头的出题频度来自 2005–2025 年试卷的统计，拿不准先看哪一章时，可以参考它，也可以直接看本页最后的频度表。')
+open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
+{HEADJS}
+<title>EJU 理科 物理 全专题讲解</title>{headmeta(SITE_NAME + " 全专题讲解", SITE_DESC, "", "")}
+<link rel="stylesheet" href="assets/site.css"></head><body class="home contents">
+<a class="skip" href="#chapters">跳到目次</a>
+<div class="ct-wrap">
+<header class="ct-head">
+<div class="ct-top"><p class="ct-kicker">EJU 理科 · 物理</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
+<h1>物理<br>全专题讲解</h1>
+<div class="ct-preface"><p>{PREFACE}</p>
+<p class="ct-facts">共 {_nt} 个讲解专题、{_np} 道原创练习题、{_D["demo_count"]} 个互动演示；过去问 {_nb} 题已按专题归类。</p></div>
+</header>
+<main id="main">
+<section id="chapters" aria-labelledby="h-chapters"><h2 id="h-chapters" class="ct-label">目次<span lang="ja">もくじ</span></h2>
+<ol class="ct-parts">{"".join(_parts)}</ol></section>
+<section id="map" aria-labelledby="h-map"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">图</p><div class="ct-body">
+<h2 id="h-map">知识导图<span class="ct-chja" lang="ja">知識マップ</span></h2>
+<p class="ct-intro">各专题按章节展开；虚线标出专题之间的重要联系，点节点即可进入对应页。</p></div>
+<figure class="mp"><p class="mp-hint" id="mp-hint">图较宽，可左右滑动查看。</p>
+<div class="mp-scroll" role="region" aria-label="知识导图" aria-describedby="mp-hint">{MAPSVG}</div>
+<figcaption id="mp-cap">物理知识导图：中心「物理」分出五章，各章下列讲解专题。虚线所示的联系：<ul class="mp-legend">{MAPLEGEND}</ul></figcaption></figure></div></section>
+<section id="appendix" aria-labelledby="h-appendix"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">附</p><div class="ct-body">
+<h2 id="h-appendix">资料・速查・工具<span class="ct-chja" lang="ja">資料・ツール</span></h2>
+<p class="ct-intro">考前查公式、对术语、找易错点；站内搜索覆盖题目、讲解、公式与数据。</p>
+<ol class="ct-list">{_appx}</ol></div></div></section>
+<section id="ranking" aria-labelledby="h-rank"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">表</p><div class="ct-body">
+<h2 id="h-rank">过去问出题频度<span class="ct-chja" lang="ja">出題頻度</span></h2>
+<p class="ct-intro">依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计，按题数从多到少排列（各页开头另有详细的「出题频度」表）。</p>
+<div class="tw"><table><thead><tr><th scope="col">专题页</th><th scope="col">原题册专题</th><th scope="col" class="num">题数</th><th scope="col">重要度</th></tr></thead><tbody>{RANKTBL}</tbody></table></div></div></div></section>
+</main>
+<footer class="ct-foot"><p class="ct-sites">姊妹站：{"".join(f'<a href="{u}">{a}</a>' for u, a in _SITES)}</p><p>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</p></footer>
+</div>
+{TOGGLEJS}<script src="assets/nav.js"></script></body></html>''')
+# 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
+open('404.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
+{HEADJS}<title>页面不存在 · {SITE_NAME}</title><meta name="robots" content="noindex"><link rel="icon" href="{SITE_PATH}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{SITE_PATH}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{SITE_PATH}assets/apple-touch-icon.png">
+<link rel="stylesheet" href="{SITE_PATH}assets/site.css"></head><body class="home nf"><main>
+<div class="home-top"><p class="eyebrow">{SITE_NAME}</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
+<p class="nf-code" aria-hidden="true">404</p><h1>页面不存在</h1><p>这个地址没有对应的页面：可能是链接写错了，或者页面已经移动。可以回到首页按专题查找，或用站内搜索。</p>
+<p class="home-links"><a href="{SITE_PATH}">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
+{TOGGLEJS}</body></html>''')
 nav=open('/workspace/eju-pages/assets/nav.js').read().split('\n')
 T=[dict(n=t['n'],slug=t['slug'],zh=t['zh'],ja=t['ja'],ready=True) for t in TOPICS]
 nav[0]='(function(){var T='+json.dumps(T,ensure_ascii=False)+';'
