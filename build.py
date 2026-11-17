@@ -326,6 +326,17 @@ def _map():
     legend = ''.join(f'<li><a href="topics/{a}/">{E(nm[a])}</a> — <a href="topics/{b}/">{E(nm[b])}</a>：{E(s)}</li>' for a, b, s in XLINKS if a in tA and b in tA)
     return ''.join(out), legend
 MAPSVG, MAPLEGEND = _map()
+def _mapdata():
+    chs, tps = {}, {}
+    for k, (area, ja, intro) in enumerate(CHAPTERS, 1):
+        chs[str(k)] = {'zh': area, 'ja': ja, 'intro': intro, 'href': f'#ch-{k}'}
+        for top in TOPICS:
+            if top.get('area') == area and top.get('problems'):
+                tps[top['slug']] = {'zh': top['zh'], 'ja': top['ja'], 'intro': top.get('lead') or '', 'href': f'topics/{top["slug"]}/', 'ch': str(k)}
+    s = json.dumps({'subject': '物理', 'chapters': chs, 'topics': tps}, ensure_ascii=False, separators=(',', ':'))
+    return s.replace('<', '\\u003c')
+MAPDATA = _mapdata()
+
 RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td class="num">{t["bank"]["n"]}</td><td class="stars">{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
 _np = sum(len(t['problems']) for t in TOPICS); _nb = sum(t['bank']['n'] for t in TOPICS if t.get('bank')); _nt = sum(1 for t in TOPICS if t['problems'])
 _SITES = [('https://feather0000.github.io/eju-calculus/', 'EJU 数学コース2 网站'), ('https://feather0000.github.io/eju-chemistry/', 'EJU 理科 化学 网站'), ('https://feather0000.github.io/eju-biology/', 'EJU 理科 生物 网站')]
@@ -348,10 +359,10 @@ open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="
 <ol class="ct-parts">{"".join(_parts)}</ol></section>
 <section id="map" aria-labelledby="h-map"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">图</p><div class="ct-body">
 <h2 id="h-map">知识导图<span class="ct-chja" lang="ja">知識マップ</span></h2>
-<p class="ct-intro">中心「物理」分出五章，每章一色，外圈是各章的讲解专题和一条代表式；虚线弧标出专题之间的重要联系。点节点即可进入对应页。</p></div>
-<figure class="mp"><p class="mp-hint" id="mp-hint">图较宽，可左右滑动查看。</p>
+<p class="ct-intro">中心「物理」分出五章，每章一色，外圈是各章的讲解专题和一条代表式；虚线弧标出专题之间的重要联系。点章节或专题可放大查看简介，再从说明卡进入对应页。</p></div>
+<figure class="mp"><p class="mp-hint" id="mp-hint">点节点可放大查看简介。电脑上按住 Ctrl 或 ⌘ 滚动缩放；点进图中后可拖动。触屏用双指缩放。Esc 或「返回」还原。</p>
 <div class="mp-scroll" role="region" aria-label="知识导图" aria-describedby="mp-hint">{MAPSVG}</div>
-<figcaption id="mp-cap">物理知识导图：中心「物理」分出五章，各章外圈列讲解专题与代表式。虚线弧所示的联系：<ul class="mp-legend">{MAPLEGEND}</ul></figcaption></figure></div></section>
+<figcaption id="mp-cap">物理知识导图：中心「物理」分出五章，各章外圈列讲解专题与代表式。虚线弧所示的联系：<ul class="mp-legend">{MAPLEGEND}</ul></figcaption></figure><script type="application/json" id="mp-data">{MAPDATA}</script></div></section>
 <section id="appendix" aria-labelledby="h-appendix"><div class="ct-part"><p class="ct-no ct-no-a" aria-hidden="true">附</p><div class="ct-body">
 <h2 id="h-appendix">资料・速查・工具<span class="ct-chja" lang="ja">資料・ツール</span></h2>
 <p class="ct-intro">考前查公式、对术语、找易错点；站内搜索覆盖题目、讲解、公式与数据。</p>
