@@ -9,7 +9,8 @@
    - 镜头（缩放、平移、惯性）由 d3-zoom 驱动，过渡用 d3-transition / d3-ease 缓动，滚轮有追逐插值，拖动松手有惯性
    - 节点漂动由 d3-force 在原作者坐标附近做弱力模拟；小节扇形布局用 d3-hierarchy 的 cluster
    - 星点闪烁、联系弧虚线流动仍用 CSS；prefers-reduced-motion 时全部取消，缩放与展开瞬间到位
-   - 专题小节只在放大聚焦或自由缩放到阈值以上后从该专题长出，总览图不画这些分支；缩回总览时平滑收回（带滞回） */
+   - 专题小节只在放大聚焦或自由缩放到阈值以上后从该专题长出，总览图不画这些分支；缩回总览时平滑收回（带滞回）
+   - 深链：?ch=N#map 进入该章环绕；?topic=slug#map 聚焦该专题；也认 #map-ch-N / #map-topic-slug。无参数则不动作 */
 (function () {
   'use strict';
   var root = document.querySelector('#map');
@@ -2990,4 +2991,31 @@
   }, { passive: false });
 
   if (scroll) scroll.style.touchAction = 'pan-y';
+
+  /* 专题页星图缩略的深链：?ch=4#map 或 ?topic=electric-field#map；也认 #map-ch-4 / #map-topic-slug。
+     无参数时不动作，其它站同一份 map.js 不受影响。 */
+  function applyDeepLink() {
+    var params, ch = '', topic = '', hash, m, a;
+    try { params = new URLSearchParams(location.search); } catch (err) { return; }
+    ch = params.get('ch') || '';
+    topic = params.get('topic') || '';
+    hash = (location.hash || '').replace(/^#/, '');
+    if (!ch && (m = /^map-ch-(\d+)$/.exec(hash))) ch = m[1];
+    if (!topic && (m = /^map-topic-([a-z0-9-]+)$/i.exec(hash))) topic = m[1];
+    if (ch && !/^\d+$/.test(ch)) ch = '';
+    if (topic && !/^[a-z0-9-]+$/i.test(topic)) topic = '';
+    if (!ch && !topic) return;
+    if (ch) a = svg.querySelector('a.mp-chn[data-ch="' + ch + '"]');
+    if (!a && topic) a = svg.querySelector('a.mp-tn[data-slug="' + topic + '"]');
+    if (!a) return;
+    if (root.scrollIntoView) {
+      try { root.scrollIntoView({ block: 'start' }); } catch (err2) { root.scrollIntoView(); }
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        focusNode(a, { instant: reduced() });
+      });
+    });
+  }
+  applyDeepLink();
 })();
