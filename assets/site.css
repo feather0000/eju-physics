@@ -129,7 +129,6 @@ footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 18px;
   nav.toc a.on { border-bottom-color: var(--accent); }
   .theme-btn { margin: 0; flex: none; }
   .hero { padding: 38px 18px; }
-  .hero-formula { border-left: 0; padding-left: 0; flex-basis: 100%; }
   body { font-size: 16px; }
 }
 @media (max-width: 480px) {
@@ -260,10 +259,13 @@ main [hidden] { display: none !important; }
   --good: #1a6b4f;
   --good-soft: #e6f6ee;
   --good-line: #b0dfc8;
-  --hero-bg: #f0f1f5;
+  --hero-bg: #f6f3eb;      /* 纸色：教材扉页 */
   --hero-ink: #1c2024;
   --hero-ink-2: #43474f;
   --hero-line: #cdced6;
+  --site-iro: #1f4e79;     /* 藍。他站可换成朱、萌黄、紫 */
+  --mp-1: #2b4a7d; --mp-2: #ae422b; --mp-3: #2e6a47; --mp-4: #8a6220; --mp-5: #6a4f87;  /* 紺・緋・常磐・黄土・江戸紫 */
+  --mp-grid: color-mix(in srgb, var(--ink) 14%, transparent);
   --c1: #2a62b0;
   --c2: #d0452f;
   --c3: #7c3fb5;
@@ -300,7 +302,10 @@ main [hidden] { display: none !important; }
     --accent: #9eb1ff; --accent-solid: #5472e4; --accent-soft: #182449; --accent-line: #304384; --on-accent: #11131f;
     --warn: #f5b373; --warn-soft: #2b1d10; --warn-line: #5c3a17;
     --good: #6fd3a8; --good-soft: #10261d; --good-line: #1f4d39;
-    --hero-bg: #18191b; --hero-ink: #edeef0; --hero-ink-2: #c3c6cc; --hero-line: #43484e;
+    --hero-bg: #161410; --hero-ink: #edeef0; --hero-ink-2: #c3c6cc; --hero-line: #43484e;
+    --site-iro: #5a8fb0;
+    --mp-1: #93acd8; --mp-2: #df8a70; --mp-3: #86b894; --mp-4: #cfa75e; --mp-5: #b59fce;
+    --mp-grid: color-mix(in srgb, var(--ink) 10%, transparent);
     --c1: #4f8fe8; --c2: #e5683a; --c3: #ab6cdc; --c4: #30a860; --shade: rgba(110, 164, 238, .24);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .28);
     --shadow-hover: 0 1px 2px rgba(0, 0, 0, .32), 0 8px 20px -12px rgba(0, 0, 0, .6);
@@ -314,7 +319,10 @@ main [hidden] { display: none !important; }
   --accent: #3451b2; --accent-solid: #3e63dd; --accent-soft: #edf2fe; --accent-line: #c1d0ff; --on-accent: #ffffff;
   --warn: #9a4a00; --warn-soft: #fff1e5; --warn-line: #fbc9a1;
   --good: #1a6b4f; --good-soft: #e6f6ee; --good-line: #b0dfc8;
-  --hero-bg: #f0f1f5; --hero-ink: #1c2024; --hero-ink-2: #43474f; --hero-line: #cdced6;
+  --hero-bg: #f6f3eb; --hero-ink: #1c2024; --hero-ink-2: #43474f; --hero-line: #cdced6;
+  --site-iro: #1f4e79;
+  --mp-1: #2b4a7d; --mp-2: #ae422b; --mp-3: #2e6a47; --mp-4: #8a6220; --mp-5: #6a4f87;
+  --mp-grid: color-mix(in srgb, var(--ink) 14%, transparent);
   --c1: #2a62b0; --c2: #d0452f; --c3: #7c3fb5; --c4: #00806a; --shade: rgba(42, 98, 176, .18);
   --shadow-card: 0 1px 2px rgba(16, 24, 40, .05), 0 6px 14px -10px rgba(16, 24, 40, .16);
   --shadow-hover: 0 2px 4px rgba(16, 24, 40, .05), 0 14px 30px -12px rgba(16, 24, 40, .18);
@@ -327,7 +335,10 @@ main [hidden] { display: none !important; }
   --accent: #9eb1ff; --accent-solid: #5472e4; --accent-soft: #182449; --accent-line: #304384; --on-accent: #11131f;
   --warn: #f5b373; --warn-soft: #2b1d10; --warn-line: #5c3a17;
   --good: #6fd3a8; --good-soft: #10261d; --good-line: #1f4d39;
-  --hero-bg: #18191b; --hero-ink: #edeef0; --hero-ink-2: #c3c6cc; --hero-line: #43484e;
+  --hero-bg: #161410; --hero-ink: #edeef0; --hero-ink-2: #c3c6cc; --hero-line: #43484e;
+  --site-iro: #5a8fb0;
+  --mp-1: #93acd8; --mp-2: #df8a70; --mp-3: #86b894; --mp-4: #cfa75e; --mp-5: #b59fce;
+  --mp-grid: color-mix(in srgb, var(--ink) 10%, transparent);
   --c1: #4f8fe8; --c2: #e5683a; --c3: #ab6cdc; --c4: #30a860; --shade: rgba(110, 164, 238, .24);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .28);
   --shadow-hover: 0 1px 2px rgba(0, 0, 0, .32), 0 8px 20px -12px rgba(0, 0, 0, .6);
@@ -336,17 +347,17 @@ main [hidden] { display: none !important; }
 /* —— 每站主色：<html data-site="physics|chemistry|biology|calculus"> 只覆盖 4 个主色 token 与 on-accent ——
    顺序与优先级：浅色（非 dark）→ 系统深色且未固定浅色 → 固定深色，三条选择器优先级相同、靠先后覆盖。
    物理沿用上面的 indigo，这里写出来是为了四站对称。 */
-[data-site="physics"]:not([data-theme="dark"])   { --accent: #3451b2; --accent-solid: #3e63dd; --accent-soft: #edf2fe; --accent-line: #c1d0ff; --on-accent: #ffffff; }
+[data-site="physics"]:not([data-theme="dark"])   { --accent: #3451b2; --accent-solid: #3e63dd; --accent-soft: #edf2fe; --accent-line: #c1d0ff; --on-accent: #ffffff; --site-iro: #1f4e79; }
 [data-site="chemistry"]:not([data-theme="dark"]) { --accent: #1d7349; --accent-solid: #2b9a66; --accent-soft: #e6f6eb; --accent-line: #adddc0; --on-accent: #ffffff; }
 [data-site="biology"]:not([data-theme="dark"])   { --accent: #b04000; --accent-solid: #ef5f00; --accent-soft: #ffefd6; --accent-line: #ffc182; --on-accent: #ffffff; }
 [data-site="calculus"]:not([data-theme="dark"])  { --accent: #5b47b0; --accent-solid: #6e56cf; --accent-soft: #f4f0fe; --accent-line: #d4cafe; --on-accent: #ffffff; }
 @media (prefers-color-scheme: dark) {
-  [data-site="physics"]:not([data-theme="light"])   { --accent: #9eb1ff; --accent-solid: #5472e4; --accent-soft: #182449; --accent-line: #304384; --on-accent: #11131f; }
+  [data-site="physics"]:not([data-theme="light"])   { --accent: #9eb1ff; --accent-solid: #5472e4; --accent-soft: #182449; --accent-line: #304384; --on-accent: #11131f; --site-iro: #5a8fb0; }
   [data-site="chemistry"]:not([data-theme="light"]) { --accent: #3dd68c; --accent-solid: #33b074; --accent-soft: #132d21; --accent-line: #20573e; --on-accent: #0f1115; }
   [data-site="biology"]:not([data-theme="light"])   { --accent: #ffa057; --accent-solid: #ef5f00; --accent-soft: #331e0b; --accent-line: #66350c; --on-accent: #0f1115; }
   [data-site="calculus"]:not([data-theme="light"])  { --accent: #baa7ff; --accent-solid: #7d66d9; --accent-soft: #291f43; --accent-line: #473876; --on-accent: #0f1115; }
 }
-[data-site="physics"][data-theme="dark"]   { --accent: #9eb1ff; --accent-solid: #5472e4; --accent-soft: #182449; --accent-line: #304384; --on-accent: #11131f; }
+[data-site="physics"][data-theme="dark"]   { --accent: #9eb1ff; --accent-solid: #5472e4; --accent-soft: #182449; --accent-line: #304384; --on-accent: #11131f; --site-iro: #5a8fb0; }
 [data-site="chemistry"][data-theme="dark"] { --accent: #3dd68c; --accent-solid: #33b074; --accent-soft: #132d21; --accent-line: #20573e; --on-accent: #0f1115; }
 [data-site="biology"][data-theme="dark"]   { --accent: #ffa057; --accent-solid: #ef5f00; --accent-soft: #331e0b; --accent-line: #66350c; --on-accent: #0f1115; }
 [data-site="calculus"][data-theme="dark"]  { --accent: #baa7ff; --accent-solid: #7d66d9; --accent-soft: #291f43; --accent-line: #473876; --on-accent: #0f1115; }
@@ -383,26 +394,57 @@ table, .q-head, .demo-out, .demo-sl b, .read, .ctrl output, .keys, .opts, nav.to
 .layout { max-width: calc(var(--toc-w) + var(--s-12) + var(--measure) + 2 * var(--s-6)); grid-template-columns: var(--toc-w) minmax(0, var(--measure)); gap: var(--s-12); justify-content: center; padding-left: var(--s-6); padding-right: var(--s-6); }
 .hero-in { max-width: calc(var(--toc-w) + var(--s-12) + var(--measure)); gap: var(--s-6) var(--s-10); }
 
-/* —— 专题页抬头：跟随主题的浅/深色带，不用渐变 —— */
-.hero { background: var(--hero-bg); color: var(--hero-ink); border-bottom: 1px solid var(--line); padding: var(--s-12) var(--s-6) var(--s-10); }
-.hero h1 { font-size: clamp(30px, 5vw, 42px); margin: 0 0 var(--s-4); color: var(--hero-ink); }
-.eyebrow { font-family: var(--sans); font-size: 13.5px; font-weight: 700; letter-spacing: .04em; color: var(--accent); margin: 0 0 var(--s-3); }
-.hero p.lead, .hero .lead { color: var(--hero-ink-2); max-width: 38em; margin: 0; }
+/* —— 专题页抬头：教材扉页式。顶上一道和色细带，纸色底，右侧边注公式与星图缩略 —— */
+.hero { position: relative; background: var(--hero-bg); color: var(--hero-ink); border-bottom: 1px solid var(--hero-line); padding: var(--s-10) var(--s-6) var(--s-10); }
+.hero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--site-iro); }
+.hero-in { align-items: start; }
+.hero-text { flex: 1 1 28rem; min-width: 0; }
+.hero .eyebrow, .eyebrow { font-family: var(--sans); font-size: 12.5px; font-weight: 700; letter-spacing: .14em; color: var(--site-iro); margin: 0 0 var(--s-3); }
+.hero h1 { font-family: var(--serif); font-size: clamp(32px, 5.2vw, 46px); font-weight: 700; line-height: 1.2; letter-spacing: .02em; margin: 0 0 var(--s-2); color: var(--hero-ink); }
+.hero-ja { font-family: var(--serif); font-size: 15.5px; line-height: 1.5; letter-spacing: .14em; color: var(--hero-ink-2); margin: 0 0 var(--s-4); }
+.hero-rule { display: block; border: 0; border-top: 1px solid var(--hero-line); width: 8.5rem; margin: 0 0 var(--s-5); }
+.hero p.lead, .hero .lead { color: var(--hero-ink-2); max-width: 38em; margin: 0; font-size: 15.5px; }
 .hero .back, .hero .back a, .hero a.back { color: var(--hero-ink-2); text-decoration: none; }
 .hero .back { margin: 0 0 var(--s-4); }
 .hero .back a:hover, .hero a.back:hover { color: var(--accent); text-decoration: underline; }
 .hero a.back { display: inline-flex; align-items: center; min-height: 32px; margin-bottom: var(--s-3); }
 
-/* —— 卡片：公式卡（.box、抬头公式、公式表）与例题卡（.q、.ex）
+.hero-aside { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-5); min-width: 0; padding-top: 2px; }
+.hero-map-a { display: block; width: 148px; color: inherit; text-decoration: none; }
+.hero-map-a:hover .hero-map, .hero-map-a:focus-visible .hero-map { outline: 1px solid var(--hero-line); outline-offset: 3px; }
+.hero-map { display: block; width: 100%; height: auto; }
+.hero-map-cap { display: block; margin-top: 6px; font-family: var(--sans); font-size: 11.5px; letter-spacing: .1em; color: var(--ink-3); text-align: center; }
+.hero-formula { flex: none; align-self: start; background: none; color: var(--hero-ink); border: 0; border-left: 1px solid var(--hero-line); border-radius: 0; box-shadow: none; padding: 0 0 0 var(--s-5); font-size: 16px; overflow-x: auto; max-width: 22rem; }
+.hero-fk { margin: 0 0 .45em; font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--ink-3); }
+.hero-formula .katex-display { margin: .35em 0; }
+
+.hero-map .hm-grid { fill: none; stroke: var(--mp-grid); stroke-width: 7; }
+.hero-map .hm-tr, .hero-map .hm-tw, .hero-map .hm-sec { fill: none; }
+.hero-map .hm-c1 { color: var(--mp-1); fill: var(--mp-1); stroke: var(--mp-1); }
+.hero-map .hm-c2 { color: var(--mp-2); fill: var(--mp-2); stroke: var(--mp-2); }
+.hero-map .hm-c3 { color: var(--mp-3); fill: var(--mp-3); stroke: var(--mp-3); }
+.hero-map .hm-c4 { color: var(--mp-4); fill: var(--mp-4); stroke: var(--mp-4); }
+.hero-map .hm-c5 { color: var(--mp-5); fill: var(--mp-5); stroke: var(--mp-5); }
+.hero-map .hm-tr { stroke-width: 10; opacity: .4; }
+.hero-map .hm-tw { stroke-width: 7; opacity: .35; }
+.hero-map .hm-tr.hm-on { stroke-width: 16; opacity: 1; }
+.hero-map .hm-tw.hm-on { stroke-width: 12; opacity: .9; }
+.hero-map .hm-sec { stroke-width: 16; opacity: .8; }
+.hero-map .hm-sec-in { stroke-width: 8; opacity: .35; }
+.hero-map .hm-ch { stroke: none; opacity: .5; }
+.hero-map .hm-ch.hm-on { opacity: 1; }
+.hero-map .hm-t { stroke: none; opacity: .45; }
+.hero-map .hm-t.hm-now { opacity: 1; }
+.hero-map .hm-root { fill: var(--hero-ink); stroke: none; opacity: .82; }
+
+/* —— 卡片：公式卡、例题卡（抬头公式改为边注，不按卡片画）
    很淡的 1px 边框（墨色 10%）、大圆角、轻阴影；深色模式阴影更克制 —— */
-.box, .q, .ex, .hero-formula, .tw, .demo, .explorer, figure.plot, .tc-it, .tc-card {
+.box, .q, .ex, .tw, .demo, .explorer, figure.plot, .tc-it, .tc-card {
   border: 1px solid var(--line);
   border-color: color-mix(in srgb, var(--ink) 10%, transparent);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
-.hero-formula { background: var(--surface); color: var(--hero-ink); padding: var(--s-3) var(--s-6); align-self: center; }
-.hero-formula .katex-display { margin: var(--s-2) 0; }
 .box { background: var(--accent-soft); padding: var(--s-4) var(--s-5); margin: var(--s-5) 0; }
 .box.warn { background: var(--warn-soft); }
 .box.good { background: var(--good-soft); }
@@ -508,7 +550,11 @@ body > .eju-site-nav .eju-nav-list a:hover, body > .eju-site-nav .eju-nav-list a
   body { font-size: 16px; }
   .layout { padding-left: var(--s-4); padding-right: var(--s-4); }
   .hero { padding: var(--s-8) 18px var(--s-8); }
-  .hero-formula { flex-basis: 100%; padding: var(--s-2) var(--s-4); }
+  .hero-aside { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; width: 100%; gap: var(--s-4) var(--s-6); }
+  .hero-map-a { width: 104px; }
+  .hero-map-dot { display: none; }
+  .hero-map-ch { display: block; margin-top: 1px; letter-spacing: .08em; }
+  .hero-formula { flex: 1 1 12rem; max-width: none; padding: 0 0 0 var(--s-4); }
   .q, .ex { padding: var(--s-4) var(--s-5); }
   /* 移动端目录：一行横向滚动，当前项自动滚入视野（eju-ux.js），不换行、不挤压主题按钮 */
   nav.toc { background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(8px); backdrop-filter: saturate(1.4) blur(8px); border-bottom-color: var(--line); gap: var(--s-2); }

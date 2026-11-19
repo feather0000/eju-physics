@@ -55,6 +55,74 @@ def headmeta(title, desc, path, root):
             f'<meta property="og:type" content="website"><meta property="og:site_name" content="{SITE_NAME}"><meta property="og:locale" content="zh_CN"><meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{SITE_URL}{path}">'
             f'<meta property="og:image" content="{SITE_URL}assets/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="{SITE_NAME} · 全专题中文讲义">'
             f'<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{t}"><meta name="twitter:description" content="{d}"><meta name="twitter:image" content="{SITE_URL}assets/og.png">\n')
+CHAPTERS = [  # area：日文名、一句章节提要
+ ('力学', '力学', '从运动学到万有引力：受力分析、能量与动量守恒、圆周运动与简谐振动。'),
+ ('热', '熱', '比热与热平衡、理想气体状态方程、热力学第一定律与热机效率。'),
+ ('波动', '波動', '波的叠加与驻波，弦与气柱、多普勒效应，光的折射、透镜与干涉。'),
+ ('电磁气', '電磁気', '电场与电容器、直流电路、电流的磁场与洛伦兹力、电磁感应与交流。'),
+ ('原子', '原子', '光电效应与物质波、玻尔模型与能级、放射线、半衰期与核反应。'),
+]
+AREA_CH = {a: i for i, (a, _, _) in enumerate(CHAPTERS, 1)}
+
+def _map_layout():
+    """与 _map() 同一套角度：中心、五章环、专题环。缩略图和全图共用，免得对不齐。"""
+    W, H, CX, CY = 1160, 1240, 580, 598
+    R0, R1, R2, LIM = 58, 208, 348, 546
+    cols = [[t for t in TOPICS if t['area'] == a and t['problems']] for a, _, _ in CHAPTERS]
+    wt = [max(len(ts), 1.5) + .4 for ts in cols]; unit = 360 / sum(wt)
+    a0 = 90 - wt[0] * unit / 2; sec = []
+    for w in wt:
+        sec.append((a0, a0 + w * unit)); a0 += w * unit
+    chA = [(s + e) / 2 for s, e in sec]
+    tA, tC = {}, {}
+    for c, ts in enumerate(cols):
+        for i, t in enumerate(ts):
+            tA[t['slug']] = chA[c] + (i - (len(ts) - 1) / 2) * unit
+            tC[t['slug']] = c
+    return dict(W=W, H=H, CX=CX, CY=CY, R0=R0, R1=R1, R2=R2, LIM=LIM, chA=chA, sec=sec, tA=tA, tC=tC, cols=cols)
+
+def _map_thumb(slug=None):
+    """专题页抬头用的星图缩略：同一套坐标，标出本章和本专题；不含文字。"""
+    L = _map_layout()
+    CX, CY, R0, R1, R2, LIM, W, H = L['CX'], L['CY'], L['R0'], L['R1'], L['R2'], L['LIM'], L['W'], L['H']
+    def pol(r, a):
+        x = math.radians(a)
+        return (CX + r * math.sin(x), CY - r * math.cos(x))
+    def f(p):
+        return f'{p[0]:.1f} {p[1]:.1f}'
+    ch = L['tC'].get(slug)  # 0-based or None
+    parts = [f'<svg class="hero-map" viewBox="0 0 {W} {H}" aria-hidden="true">']
+    for r in (R0, R1, R2, LIM):
+        parts.append(f'<circle class="hm-grid" cx="{CX}" cy="{CY}" r="{r}"/>')
+    if ch is not None:
+        a0, a1 = L['sec'][ch]
+        p0, p1 = pol(R2, a0), pol(R2, a1)
+        large = 1 if (a1 - a0) % 360 > 180 else 0
+        parts.append(f'<path class="hm-sec hm-c{ch + 1}" d="M{f(p0)}A{R2} {R2} 0 {large} 1 {f(p1)}"/>')
+        q0, q1 = pol(R1, a0), pol(R1, a1)
+        parts.append(f'<path class="hm-sec hm-sec-in hm-c{ch + 1}" d="M{f(q0)}A{R1} {R1} 0 {large} 1 {f(q1)}"/>')
+    for c, a in enumerate(L['chA']):
+        p0, p1 = pol(R0 + 6, a), pol(R1, a)
+        on = ' hm-on' if c == ch else ''
+        parts.append(f'<line class="hm-tr hm-c{c + 1}{on}" x1="{p0[0]:.1f}" y1="{p0[1]:.1f}" x2="{p1[0]:.1f}" y2="{p1[1]:.1f}"/>')
+    for sl, a in L['tA'].items():
+        c = L['tC'][sl]
+        p0, p1 = pol(R1, L['chA'][c]), pol(R2, a)
+        on = ' hm-on' if sl == slug else ''
+        parts.append(f'<line class="hm-tw hm-c{c + 1}{on}" x1="{p0[0]:.1f}" y1="{p0[1]:.1f}" x2="{p1[0]:.1f}" y2="{p1[1]:.1f}"/>')
+    for sl, a in L['tA'].items():
+        p = pol(R2, a); c = L['tC'][sl]
+        now = ' hm-now' if sl == slug else ''
+        r = 16 if sl == slug else 9
+        parts.append(f'<circle class="hm-t hm-c{c + 1}{now}" cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="{r}"/>')
+    for c, a in enumerate(L['chA']):
+        p = pol(R1, a)
+        on = ' hm-on' if c == ch else ''
+        parts.append(f'<circle class="hm-ch hm-c{c + 1}{on}" cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="' + ('28' if c == ch else '18') + '"/>')
+    parts.append(f'<circle class="hm-root" cx="{CX}" cy="{CY}" r="{R0}"/>')
+    parts.append('</svg>')
+    return ''.join(parts)
+
 def page(t):
     meta = headmeta(f'{SITE_NAME} · {t["n"]} {t["zh"]}', t["lead"], f'topics/{t["slug"]}/', '../../')
     toc=[(sid,tt) for sid,tt,_,_ in t['sections']]+([('demo','互动演示')] if DEMOS.get(t['slug']) else [])+([('examples','例题')] if t['examples'] else [])+([('practice','练习题')] if t['problems'] else [])+([('terms','术语对照')] if t['terms'] else [])
@@ -67,8 +135,26 @@ def page(t):
         pr+=(f'<article class="q" id="p{k+1}"><div class="q-head"><b>问 {k+1}</b>{'<span class="origin hf">原创 · 过去问高频题型</span>' if p.get("new") else '<span class="origin">原创 · EJU 风格</span>'}</div><p>{p["q"]}</p><ol class="opts">{opts}</ol>'
              f'<details><summary>解答</summary><div class="ans"><p><strong>正解：{MARK[p["ans"]]}</strong></p>{p["sol"]}</div></details></article>')
     terms=''.join(f'<tr><td>{a}</td><td lang="ja">{b}</td><td class="kana" lang="ja">{c}</td></tr>' for a,b,c in t['terms'])
-    hero=''.join(f'$${h}$$' for h in t['hero'])
-    hero_box = f'<div class="hero-formula" aria-hidden="true">{hero}</div>' if hero else ''
+    ch = AREA_CH.get(t['area'])
+    if ch:
+        kicker = f'EJU 物理 · 第 {ch} 章'
+        map_href = f'../../?ch={ch}#map'
+        map_lab = f'在知识导图中查看第 {ch} 章'
+        map_cap = f'知识导图<span class="hero-map-dot"> · </span><span class="hero-map-ch">第 {ch} 章</span>'
+        thumb = _map_thumb(t['slug'])
+    else:
+        kicker = f'EJU 物理 · {t["area"]}'
+        map_href = '../../#map'
+        map_lab = '回到知识导图'
+        map_cap = '知识导图'
+        thumb = _map_thumb(None)
+    map_link = f'<a class="hero-map-a" href="{map_href}" aria-label="{map_lab}">{thumb}<span class="hero-map-cap">{map_cap}</span></a>'
+    if t.get('hero'):
+        formulas = ''.join(f'$${h}$$' for h in t['hero'])
+        hero_f = f'<div class="hero-formula"><p class="hero-fk">代表式</p>{formulas}</div>'
+    else:
+        hero_f = ''
+    hero_aside = f'<div class="hero-aside">{map_link}{hero_f}</div>'
     EX=f'''<section id="examples"><h2>例题</h2><p class="jp-sub">例題</p>{ex}</section>''' if t['examples'] else ''
     PR=f'''<section id="practice"><h2>练习题</h2><p class="jp-sub">練習問題（{len(t["problems"])} 题，选择题；取 $g=9.8\\,\\mathrm{{m/s^2}}$，另有说明除外）</p>{pr}</section>''' if t['problems'] else ''
     TE=f'''<section id="terms"><h2>术语对照</h2><p class="jp-sub">用語</p><div class="tw"><table><tr><th>中文</th><th>日本語</th><th>读法</th></tr>{terms}</table></div></section>''' if t['terms'] else ''
@@ -78,7 +164,7 @@ def page(t):
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/eju-ux.js"></script><script defer src="../../assets/demos.js?v=3"></script>
 <link rel="stylesheet" href="../../assets/site.css"></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
-<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="../../">← 目录</a></p><p class="eyebrow">EJU 理科 物理 · {t["area"]} · {t["ja"]}</p><h1>{t["n"]} {t["zh"]}</h1><p class="lead">{t["lead"]}</p></div>{hero_box}</div></header>
+<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="../../">← 目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
 <div class="layout"><nav class="toc" aria-label="目录"><div style="flex:1;min-width:0"><p class="toc-title">目录</p><ol>{tochtml}</ol></div><button class="chip theme-btn" id="theme" type="button">深色</button></nav>
 <main id="main">{secs}{demosec(t)}{EX}{PR}{TE}
 <footer>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</footer></main></div>
@@ -89,13 +175,6 @@ window.addEventListener('load',function(){{if(!window.renderMathInElement){{docu
 for t in TOPICS:
     os.makedirs(f'topics/{t["slug"]}',exist_ok=True); open(f'topics/{t["slug"]}/index.html','w').write(page(t))
 # HOME：首页目次（像书的目录：左侧章号，右侧章名与专题，点线引到右侧的题数・过去问・星级；附录列资料与工具；最后是过去问频度表）。样式在 site.css 末尾「首页目次」块，无脚本
-CHAPTERS = [  # area：日文名、一句章节提要
- ('力学', '力学', '从运动学到万有引力：受力分析、能量与动量守恒、圆周运动与简谐振动。'),
- ('热', '熱', '比热与热平衡、理想气体状态方程、热力学第一定律与热机效率。'),
- ('波动', '波動', '波的叠加与驻波，弦与气柱、多普勒效应，光的折射、透镜与干涉。'),
- ('电磁气', '電磁気', '电场与电容器、直流电路、电流的磁场与洛伦兹力、电磁感应与交流。'),
- ('原子', '原子', '光电效应与物质波、玻尔模型与能级、放射线、半衰期与核反应。'),
-]
 def _stars(s): return f'<span class="stars" aria-label="重要度 {len(s)}/3">{s}</span>'
 def _entry(t, label=None, meta=None):
     if meta is None:
@@ -179,8 +258,10 @@ def _icon_atom(x, y, s, cls):  # 玻尔模型：原子核 + 两圈轨道 + 电�
                 + ''.join(f'<circle class="mp-dot" cx="{px:.1f}" cy="{py:.1f}" r="{.04 * s:.1f}"/>' for px, py in (e(.24, -50), e(.44, 160), e(.44, 30))))
 _ICONS = [_icon_incline, _icon_piston, _icon_wave, _icon_magnet, _icon_atom]
 def _map():
-    W, H, CX, CY = 1160, 1240, 580, 598
-    R0, R1, R2, NR, IS, LIM = 58, 208, 348, 42, 58, 546  # 中心圆、章环、专题环、章节点半径、插图边长、外圈刻度
+    _L = _map_layout()
+    W, H, CX, CY = _L['W'], _L['H'], _L['CX'], _L['CY']
+    R0, R1, R2, LIM = _L['R0'], _L['R1'], _L['R2'], _L['LIM']
+    NR, IS = 42, 58  # 章节点半径、插图边长
     FN, FF, FL, BH, GAP = 18, 16, 15.5, 58, 11  # 专题名字号、公式字号、联系标签字号、专题框高、框离星点
     LANES = [324, 305, 286]  # 联系弧走的同心轨道（外→内），都在章节点外缘 R1+NR 与专题环之间
     E = html.escape
@@ -196,15 +277,9 @@ def _map():
         n0, n3 = nrm(p[0], p[1] if p[1] != p[0] else p[3]), nrm(p[2], p[3]); hs = [h0, h0 + (h1 - h0) / 3, h0 + 2 * (h1 - h0) / 3, h1]; ns = [n0, n0, n3, n3]
         L = [(q[0] + n[0] * h, q[1] + n[1] * h) for q, n, h in zip(p, ns, hs)]; R = [(q[0] - n[0] * h, q[1] - n[1] * h) for q, n, h in zip(p, ns, hs)]
         return f'M{f(L[0])}C{f(L[1])} {f(L[2])} {f(L[3])}L{f(R[3])}C{f(R[2])} {f(R[1])} {f(R[0])}Z'
-    # 扇区：权重 = max(专题数, 最小值) + 间隔；力学居右（专题框竖排有余地），其余顺时针排开
-    cols = [[t for t in TOPICS if t['area'] == a and t['problems']] for a, _, _ in CHAPTERS]
-    wt = [max(len(ts), 1.5) + .4 for ts in cols]; unit = 360 / sum(wt)
-    a0 = 90 - wt[0] * unit / 2; sec = []
-    for w in wt: sec.append((a0, a0 + w * unit)); a0 += w * unit
-    chA = [(s + e) / 2 for s, e in sec]
-    tA, tC, box, star, twig = {}, {}, {}, {}, {}
-    for c, ts in enumerate(cols):
-        for i, t in enumerate(ts): tA[t['slug']] = chA[c] + (i - (len(ts) - 1) / 2) * unit; tC[t['slug']] = c
+    # 扇区、专题角与 _map_layout() 同一套
+    cols, chA, sec, tA, tC = _L['cols'], _L['chA'], _L['sec'], dict(_L['tA']), dict(_L['tC'])
+    box, star, twig = {}, {}, {}
     for sl, a in tA.items():  # 专题框：沿径向放在星点外侧（矩形支撑函数），框宽按题名和公式宽度
         t = next(t for t in TOPICS if t['slug'] == sl); P = pol(R2, a); star[sl] = P
         w = max(_tw(t['zh'], FN), _fml(MAPF[sl], 0, 0)[1] * FF) + 30
