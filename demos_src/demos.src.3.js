@@ -120,19 +120,83 @@
       },
       resize: function (d) { m = Map(0, 4, 0, 3, 0, d.W, 0, d.H); img = null; },
       draw: function (d, c) {
-        var W = d.W, H = d.H, key = JSON.stringify(Q) + C.dark + W;
-        if (key !== imgKey || !img) { /* 低分辨率电势图 + 等势线（每 30 V） */
-          var s = 3, nw = Math.ceil(W / s), nh = Math.ceil(H / s), cv = document.createElement('canvas'); cv.width = nw; cv.height = nh;
-          var cx = cv.getContext('2d'), id = cx.createImageData(nw, nh), V = new Float32Array(nw * nh), step = 30;
-          for (var j = 0; j < nh; j++) for (var i = 0; i < nw; i++) V[j * nw + i] = P.potential(Q, m.ix(i * s + s / 2), m.iy(j * s + s / 2));
+        var W = d.W, H = d.H, key = JSON.stringify(Q) + C.dark + W + 'x' + H;
+        if (key !== imgKey || !img) { /* 电势色块用粗网格；等势线用带插值的 marching squares，电荷附近更密 */
+          var step = 30, capV = 400, sW = 3, nw = Math.ceil(W / sW), nh = Math.ceil(H / sW);
+          var wash = document.createElement('canvas'); wash.width = nw; wash.height = nh;
+          var wx = wash.getContext('2d'), id = wx.createImageData(nw, nh), VW = new Float32Array(nw * nh);
+          for (var j = 0; j < nh; j++) for (var i = 0; i < nw; i++) VW[j * nw + i] = P.potential(Q, m.ix(i * sW + sW / 2), m.iy(j * sW + sW / 2));
           var bg = C.dark ? [28, 32, 41] : [255, 253, 248];
           for (j = 0; j < nh; j++) for (i = 0; i < nw; i++) {
-            var v = V[j * nw + i], t = Math.max(-1, Math.min(1, v / 120)), o = (j * nw + i) * 4, col = t > 0 ? [230, 90, 70] : [60, 120, 230], a = Math.abs(t) * 0.45;
-            var lv = Math.floor(v / step), edge = (i + 1 < nw && Math.floor(V[j * nw + i + 1] / step) !== lv) || (j + 1 < nh && Math.floor(V[(j + 1) * nw + i] / step) !== lv);
-            if (edge && Math.abs(v) < 400) a = 0.9, col = C.dark ? [235, 232, 224] : [80, 80, 80];
+            var v = VW[j * nw + i], t = Math.max(-1, Math.min(1, (isFinite(v) ? v : 0) / 120)), o = (j * nw + i) * 4, col = t > 0 ? [230, 90, 70] : [60, 120, 230], a = isFinite(v) ? Math.abs(t) * 0.45 : 0;
             id.data[o] = bg[0] * (1 - a) + col[0] * a; id.data[o + 1] = bg[1] * (1 - a) + col[1] * a; id.data[o + 2] = bg[2] * (1 - a) + col[2] * a; id.data[o + 3] = 255;
           }
-          cx.putImageData(id, 0, 0); img = cv; imgKey = key;
+          wx.putImageData(id, 0, 0);
+          var cv = document.createElement('canvas'); cv.width = W; cv.height = H; var g = cv.getContext('2d');
+          g.imageSmoothingEnabled = true; g.drawImage(wash, 0, 0, W, H);
+          /* 等势线：粗网格 + 电荷周围加密，边上线性插值，避免锯齿 */
+          var sC = W < 400 ? 2.5 : 2, nx = Math.floor(W / sC) + 1, ny = Math.floor(H / sC) + 1, VC = new Float32Array(nx * ny);
+          for (j = 0; j < ny; j++) for (i = 0; i < nx; i++) VC[j * nx + i] = P.potential(Q, m.ix(i * sC), m.iy(j * sC));
+          function Vcc(ii, jj) { return VC[jj * nx + ii]; }
+          function cellSegs(ii, jj, ss, get, path) {
+            var v00 = get(ii, jj), v10 = get(ii + 1, jj), v11 = get(ii + 1, jj + 1), v01 = get(ii, jj + 1);
+            if (![v00, v10, v11, v01].every(isFinite)) return;
+            var vmin = Math.min(v00, v10, v11, v01), vmax = Math.max(v00, v10, v11, v01);
+            if (vmin > capV || vmax < -capV) return;
+            var lv0 = Math.ceil(Math.max(vmin, -capV) / step) * step, lv1 = Math.floor(Math.min(vmax, capV) / step) * step, lv;
+            for (lv = lv0; lv <= lv1 + 1e-6; lv += step) {
+              var pts = [];
+              function add(a, b, x0, y0, x1, y1) {
+                if ((a < lv && b >= lv) || (a >= lv && b < lv)) {
+                  var u = (lv - a) / (b - a); if (!isFinite(u)) u = 0.5; if (u < 0) u = 0; if (u > 1) u = 1;
+                  pts.push([x0 + u * (x1 - x0), y0 + u * (y1 - y0)]);
+                }
+              }
+              var xA = ii * ss, yA = jj * ss, xB = (ii + 1) * ss, yB = (jj + 1) * ss;
+              add(v00, v10, xA, yA, xB, yA); add(v10, v11, xB, yA, xB, yB); add(v11, v01, xB, yB, xA, yB); add(v01, v00, xA, yB, xA, yA);
+              if (pts.length >= 2) { path.moveTo(pts[0][0], pts[0][1]); path.lineTo(pts[1][0], pts[1][1]); }
+              if (pts.length >= 4) { path.moveTo(pts[2][0], pts[2][1]); path.lineTo(pts[3][0], pts[3][1]); }
+            }
+          }
+          g.beginPath();
+          var near = [];
+          Q.forEach(function (q) { near.push([m.X(q.x), m.Y(q.y)]); });
+          function closeToCharge(ii, jj) {
+            var x = (ii + 0.5) * sC, y = (jj + 0.5) * sC, k;
+            for (k = 0; k < near.length; k++) if (Math.hypot(x - near[k][0], y - near[k][1]) < 56) return true;
+            return false;
+          }
+          for (j = 0; j < ny - 1; j++) for (i = 0; i < nx - 1; i++) {
+            if (closeToCharge(i, j)) {
+              /* 电荷周围再细一档（半格），把环线画圆 */
+              var gi, gj;
+              for (gj = 0; gj < 2; gj++) for (gi = 0; gi < 2; gi++) {
+                var i0 = i + gi * 0.5, j0 = j + gj * 0.5;
+                function Vr(ii, jj) { return P.potential(Q, m.ix(ii * sC), m.iy(jj * sC)); }
+                var vv00 = Vr(i0, j0), vv10 = Vr(i0 + 0.5, j0), vv11 = Vr(i0 + 0.5, j0 + 0.5), vv01 = Vr(i0, j0 + 0.5);
+                if (![vv00, vv10, vv11, vv01].every(isFinite)) continue;
+                var umin = Math.min(vv00, vv10, vv11, vv01), umax = Math.max(vv00, vv10, vv11, vv01);
+                if (umin > capV || umax < -capV) continue;
+                var u0 = Math.ceil(Math.max(umin, -capV) / step) * step, u1 = Math.floor(Math.min(umax, capV) / step) * step, u;
+                for (u = u0; u <= u1 + 1e-6; u += step) {
+                  var qp = [];
+                  function add2(a, b, x0, y0, x1, y1) {
+                    if ((a < u && b >= u) || (a >= u && b < u)) {
+                      var k = (u - a) / (b - a); if (!isFinite(k)) k = 0.5; if (k < 0) k = 0; if (k > 1) k = 1;
+                      qp.push([x0 + k * (x1 - x0), y0 + k * (y1 - y0)]);
+                    }
+                  }
+                  var xa = i0 * sC, ya = j0 * sC, xb = (i0 + 0.5) * sC, yb = (j0 + 0.5) * sC;
+                  add2(vv00, vv10, xa, ya, xb, ya); add2(vv10, vv11, xb, ya, xb, yb); add2(vv11, vv01, xb, yb, xa, yb); add2(vv01, vv00, xa, yb, xa, ya);
+                  if (qp.length >= 2) { g.moveTo(qp[0][0], qp[0][1]); g.lineTo(qp[1][0], qp[1][1]); }
+                  if (qp.length >= 4) { g.moveTo(qp[2][0], qp[2][1]); g.lineTo(qp[3][0], qp[3][1]); }
+                }
+              }
+            } else cellSegs(i, j, sC, Vcc, g);
+          }
+          g.strokeStyle = C.dark ? 'rgba(235,232,224,.88)' : 'rgba(70,70,70,.82)';
+          g.lineWidth = 1; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke();
+          img = cv; imgKey = key;
         }
         c.imageSmoothingEnabled = true; c.drawImage(img, 0, 0, W, H);
         /* 电场线：从每个正电荷沿电场向前描，从每个负电荷沿电场向后描。
@@ -176,18 +240,19 @@
     var mode, dr, er, dv;
     function wide(w) { return w >= 520; }
     function geo(d) {
-      /* 左侧留给电池与刀闸，顶轨在提示文字和上极板把手之下；导线接在极板左缘外侧，不压板、不交叉。 */
+      /* 极板组整体靠右，左侧留给电池、极性标注和竖导线；顶轨在提示和上极板把手之下。 */
       var W = d.W, H = d.H, wd = wide(W), Hc = wd ? H : Math.round(H * 0.62);
       var wy = 36, by = Hc - 14, padTop = wy + 28, padBot = 22;
       var room = by - padBot - padTop - 6, kd = D.clamp(Math.floor(room / 3.15), 16, 40);
       var yb = D.clamp(Math.round(Hc * 0.66), padTop + 3 * kd + 6, by - padBot);
       var gap = kd * dr.v, yt = yb - gap - 6;
-      var bx = wd ? 36 : 30, xMin = bx + 42, mSpace = 46, rightLim = wd ? W * 0.58 : W;
-      var pwMax = Math.max(100, rightLim - mSpace - xMin);
+      var bx = wd ? 38 : 32, xMin = bx + (wd ? 64 : 56), meterGap = wd ? 28 : 26, meterR = 15;
+      var rightLim = wd ? W * 0.58 : W;
+      var pwMax = Math.max(100, rightLim - (meterGap + meterR + 12) - xMin);
       var pw = Math.min(wd ? Math.min(W * 0.32, 250) : pwMax, pwMax);
       var x0 = xMin, cx = x0 + pw / 2;
-      var sw = Math.min(x0 - 22, Math.max(bx + 18, Math.round((bx + x0) / 2)));
-      return { W: W, H: H, wd: wd, Hc: Hc, cx: cx, pw: pw, kd: kd, yb: yb, gap: gap, yt: yt, bx: bx, sw: sw, wy: wy, by: by, x0: x0 };
+      var sw = D.clamp(bx + 20, 22, x0 - 28);
+      return { W: W, H: H, wd: wd, Hc: Hc, cx: cx, pw: pw, kd: kd, yb: yb, gap: gap, yt: yt, bx: bx, sw: sw, wy: wy, by: by, x0: x0, meterGap: meterGap, meterR: meterR };
     }
     return { aspect: function (w) { return wide(w) ? 1.7 : 0.85; },
       init: function (d) {
@@ -210,7 +275,7 @@
         D.drawCell(c, bx, bc, 48, 18, -Math.PI / 2); txt(c, '10 V', bx, bc + 38, C['ink-2'], F12);
         var ang = on ? 0 : -0.75; c.save(); c.translate(sw - 14, wy); c.rotate(ang); metal(c, 0, -2, 28, 4); c.restore();
         D.drawBall(c, sw - 14, wy, 3.5, '#6b717c'); D.drawBall(c, sw + 14, wy, 3, '#6b717c'); D.drawBall(c, sw - 14 + Math.cos(ang) * 30, wy + Math.sin(ang) * 30, 4, C.c4);
-        if (!on) txt(c, '断开', Math.max(18, sw - 16), wy + 16, C.warn, F12);
+        if (!on) txt(c, '断开', (bx + rise) / 2, wy + 16, C.warn, F12);
         /* 介质、极板、电荷、电场 */
         if (er.v > 1) { var dg = c.createLinearGradient(0, yt + 6, 0, yb); dg.addColorStop(0, D.alpha(C.accent, 0.28)); dg.addColorStop(0.5, D.alpha(C.accent, 0.14)); dg.addColorStop(1, D.alpha(C.accent, 0.3)); c.fillStyle = dg; c.fillRect(x0 + 4, yt + 6, pw - 8, gap); txt(c, 'εᵣ = ' + fx(er.v, 1), x0 + pw - 10, yt + 6 + gap / 2, C.accent, F11, 'right'); }
         D.shadow(c, cx, yb + 12, pw * 0.55, 3, 0.25);
@@ -219,13 +284,64 @@
         line(c, [[cx, yt], [cx, yt - 8]], C.dark ? '#9aa0aa' : '#5d636e', 3); D.drawBall(c, cx, yt - 12, 6, C.dark ? '#7a6a55' : '#3a3e46'); /* 绝缘把手 */
         var nq = Math.max(1, Math.round(r.Q / r0.Q * 6)); for (i = 0; i < Math.min(nq, 24); i++) { x = x0 + (i + 0.5) * pw / Math.min(nq, 24); txt(c, '+', x, yt - 6, C.c2, '700 12px ' + D.FONT); txt(c, '−', x, yb + 15, C.c1, '700 12px ' + D.FONT); }
         var nE = Math.max(1, Math.round(r.E / r0.E * 5)); for (i = 0; i < Math.min(nE, 20); i++) { x = x0 + (i + 0.5) * pw / Math.min(nE, 20); arrow(c, x, yt + 7, x, yb - 1, C['ink-2'], 1.2); }
-        /* 电压表并在极板两端 */
-        var mx = x0 + pw + 26, my = (yt + yb) / 2;
-        D.wire(c, [[x0 + pw, yt + 3], [mx, yt + 3], [mx, my - 16]], { w: 1.2 }); D.wire(c, [[x0 + pw, yb + 3], [mx, yb + 3], [mx, my + 16]], { w: 1.2 });
-        D.drawMeter(c, mx, my, 15, r.V / 30, { label: 'V' }); txt(c, fx(r.V, 1) + ' V', mx, Math.max(yb + 3, my + 15) + 12, C['ink-2'], '600 12px ' + D.FONT);
+        /* 电压表并在极板两端（随极板组一起右移） */
+        var mx = x0 + pw + g.meterGap, my = (yt + yb) / 2, mR = g.meterR;
+        D.wire(c, [[x0 + pw, yt + 3], [mx, yt + 3], [mx, my - mR - 1]], { w: 1.2 }); D.wire(c, [[x0 + pw, yb + 3], [mx, yb + 3], [mx, my + mR + 1]], { w: 1.2 });
+        D.drawMeter(c, mx, my, mR, r.V / 30, { label: 'V' });
+        var vLab = fx(r.V, 1) + ' V', vLy = Math.max(yb + 16, my + mR + 12);
+        txt(c, vLab, mx, vLy, C['ink-2'], '600 12px ' + D.FONT);
         if (!d.grabbed) D.hint(c, '可上下拖上极板（改 d），点按开关', x0, 12);
-        if (g.wd) bars(c, W * 0.58, 40, W * 0.4, H - 100, [['C', r.C / r0.C, C.c1], ['Q', r.Q / r0.Q, C.c3], ['V', r.V / r0.V, C.c2], ['E', r.E / r0.E, C['ink-2']], ['U', r.U / r0.U, C.warn]], 5, '与初始（d₀, εᵣ=1, 10 V）之比');
-        else bars(c, 20, g.Hc + 26, W - 40, H - g.Hc - 62, [['C', r.C / r0.C, C.c1], ['Q', r.Q / r0.Q, C.c3], ['V', r.V / r0.V, C.c2], ['E', r.E / r0.E, C['ink-2']], ['U', r.U / r0.U, C.warn]], 5, '与初始（d₀, εᵣ=1, 10 V）之比');
+        var ratios = [r.C / r0.C, r.Q / r0.Q, r.V / r0.V, r.E / r0.E, r.U / r0.U], barMax = Math.max(5, Math.ceil(Math.max.apply(null, ratios)));
+        var barItems = [['C', ratios[0], C.c1], ['Q', ratios[1], C.c3], ['V', ratios[2], C.c2], ['E', ratios[3], C['ink-2']], ['U', ratios[4], C.warn]];
+        var barX, barY, barW, barH;
+        var barTitle = '与初始（d₀, εᵣ=1, 10 V）之比';
+        if (g.wd) {
+          barX = W * 0.58; barY = 56; barW = W * 0.4; barH = H - 116;
+          bars(c, barX, barY, barW, barH, barItems, barMax, '');
+          txt(c, barTitle, barX + barW / 2, 22, C['ink-2'], '600 12px ' + D.FONT);
+        } else {
+          barX = 20; barY = g.Hc + 26; barW = W - 40; barH = H - g.Hc - 62;
+          bars(c, barX, barY, barW, barH, barItems, barMax, barTitle);
+        }
+        /* 给重叠检查用的几何快照（画面上不另画） */
+        (function () {
+          function tbox(name, s, x, y, font, align) {
+            c.save(); c.font = font || F12; var tw = c.measureText(s).width, th = 13, ax = align === 'left' ? 0 : align === 'right' ? 1 : 0.5; c.restore();
+            return { name: name, x: x - ax * tw - 1, y: y - th / 2 - 1, w: tw + 2, h: th + 2 };
+          }
+          var boxes = [
+            { name: 'plateT', x: x0, y: yt, w: pw, h: 6 },
+            { name: 'plateB', x: x0, y: yb, w: pw, h: 6 },
+            { name: 'handle', x: cx - 8, y: yt - 20, w: 16, h: 22 },
+            { name: 'meter', x: mx - mR, y: my - mR, w: 2 * mR, h: 2 * mR, r: mR, cx: mx, cy: my },
+            { name: 'batt', x: bx - 10, y: bc - 25, w: 20, h: 50 },
+            { name: 'plusRow', x: x0, y: yt - 14, w: pw, h: 12 },
+            { name: 'minusRow', x: x0, y: yb + 8, w: pw, h: 14 },
+            tbox('battV', '10 V', bx, bc + 38, F12),
+            tbox('batt+', '+', bx + 17, bc - 16, '700 12px ' + D.FONT),
+            tbox('batt−', '−', bx + 17, bc + 18, '700 12px ' + D.FONT),
+            tbox('vread', vLab, mx, vLy, '600 12px ' + D.FONT)
+          ];
+          if (!on) boxes.push(tbox('openLab', '断开', (bx + rise) / 2, wy + 16, F12));
+          if (!d.grabbed) boxes.push(tbox('hint', '可上下拖上极板（改 d），点按开关', x0, 12, '12px ' + D.FONT, 'left'));
+          if (er.v > 1) boxes.push(tbox('erLab', 'εᵣ = ' + fx(er.v, 1), x0 + pw - 10, yt + 6 + gap / 2, F11, 'right'));
+          boxes.push({ name: 'bars', x: barX, y: g.wd ? 10 : barY - 16, w: barW, h: g.wd ? (barY + barH - 10) : barH + 30 });
+          if (g.wd) boxes.push(tbox('barTitle', barTitle, barX + barW / 2, 22, '600 12px ' + D.FONT));
+          var ang = on ? 0 : -0.75, tipx = sw - 14 + Math.cos(ang) * 30, tipy = wy + Math.sin(ang) * 30;
+          boxes.push({ name: 'switch', x: Math.min(sw - 18, tipx) - 5, y: Math.min(wy, tipy) - 6, w: Math.abs(Math.max(sw + 18, tipx) - Math.min(sw - 18, tipx)) + 10, h: Math.abs(Math.max(wy, tipy) - Math.min(wy, tipy)) + 12 });
+          d._audit = {
+            W: W, H: H, d: dr.v, er: er.v, on: on, grabbed: !!d.grabbed,
+            wires: [
+              { name: 'top', pts: [[x0, yt + 3], [rise, yt + 3], [rise, wy], [sw + 14, wy]], w: 3 },
+              { name: 'batt+', pts: [[sw - 14, wy], [bx, wy], [bx, bc - 24]], w: 3 },
+              { name: 'bot', pts: [[x0, yb + 3], [rise, yb + 3], [rise, by], [bx, by], [bx, bc + 24]], w: 3 },
+              { name: 'vmT', pts: [[x0 + pw, yt + 3], [mx, yt + 3], [mx, my - mR - 1]], w: 1.6 },
+              { name: 'vmB', pts: [[x0 + pw, yb + 3], [mx, yb + 3], [mx, my + mR + 1]], w: 1.6 }
+            ],
+            boxes: boxes,
+            joints: [[x0, yt + 3], [x0, yb + 3], [x0 + pw, yt + 3], [x0 + pw, yb + 3], [bx, bc - 24], [bx, bc + 24], [bx, wy], [bx, by], [rise, wy], [rise, yt + 3], [rise, yb + 3], [rise, by], [sw - 14, wy], [sw + 14, wy], [mx, yt + 3], [mx, yb + 3], [mx, my - mR - 1], [mx, my + mR + 1]]
+          };
+        })();
         d.out([['C = εᵣε₀S/d', fx(r.C / r0.C, 2) + ' 倍（' + fx(r.C * 1e12, 1) + ' pF）'], ['Q', fx(r.Q / r0.Q, 2) + ' 倍'], ['V', fx(r.V, 2) + ' V'], ['E = V/d', fx(r.E / r0.E, 2) + ' 倍'], ['静电能 U = ½QV', fx(r.U / r0.U, 2) + ' 倍']],
           '接着电池：V 不变，Q = CV 随 C 变。断开后：Q 不变，V = Q/C；此时只改变 d 的话 E = Q/(εᵣε₀S) 不变。（S = 100 cm²，d₀ = 1 mm）可直接抓住上极板的绝缘把手上下拖动改变 d，点按刀闸开关切换“接着电池 / 断开”；电压表（满偏 30 V）显示板间电压。');
       } };
