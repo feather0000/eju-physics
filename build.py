@@ -138,13 +138,13 @@ def page(t):
     ch = AREA_CH.get(t['area'])
     if ch:
         kicker = f'EJU 物理 · 第 {ch} 章'
-        map_href = f'../../?ch={ch}#map'
+        map_href = f'/physics/?ch={ch}#map'
         map_lab = f'在知识导图中查看第 {ch} 章'
         map_cap = f'知识导图<span class="hero-map-dot"> · </span><span class="hero-map-ch">第 {ch} 章</span>'
         thumb = _map_thumb(t['slug'])
     else:
         kicker = f'EJU 物理 · {t["area"]}'
-        map_href = '../../#map'
+        map_href = '/physics/#map'
         map_lab = '回到知识导图'
         map_cap = '知识导图'
         thumb = _map_thumb(None)
@@ -164,7 +164,7 @@ def page(t):
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/eju-ux.js"></script><script defer src="../../assets/demos.js?v=3"></script>
 <link rel="stylesheet" href="../../assets/site.css"></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
-<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="../../">← 目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
+<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="/physics/">← 物理目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
 <div class="layout"><nav class="toc" aria-label="目录"><div style="flex:1;min-width:0"><p class="toc-title">目录</p><ol>{tochtml}</ol></div><button class="chip theme-btn" id="theme" type="button">深色</button></nav>
 <main id="main">{secs}{demosec(t)}{EX}{PR}{TE}
 <footer>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</footer></main></div>
@@ -418,17 +418,18 @@ print('map kids:', _nk)
 
 RANKTBL=''.join(f'<tr><td><a href="topics/{t["slug"]}/">{t["n"]} {t["zh"]}</a></td><td>{" ".join(t["bank"]["codes"])}</td><td class="num">{t["bank"]["n"]}</td><td class="stars">{t["bank"]["stars"]}</td></tr>' for t in sorted([t for t in TOPICS if t.get('bank')],key=lambda t:-t['bank']['n']))
 _np = sum(len(t['problems']) for t in TOPICS); _nb = sum(t['bank']['n'] for t in TOPICS if t.get('bank')); _nt = sum(1 for t in TOPICS if t['problems'])
-_SITES = [('https://feather0000.github.io/eju-calculus/', 'EJU 数学コース2 网站'), ('https://feather0000.github.io/eju-chemistry/', 'EJU 理科 化学 网站'), ('https://feather0000.github.io/eju-biology/', 'EJU 理科 生物 网站')]
+_SITES = [('https://eju.feather0.com/', '四科总入口'), ('https://math.eju.feather0.com/', 'EJU 数学コース2 网站'), ('https://chemistry.eju.feather0.com/', 'EJU 理科 化学 网站'), ('https://biology.eju.feather0.com/', 'EJU 理科 生物 网站')]
 PREFACE = ('这是按 EJU 理科（物理）大纲整理的中文讲义。建议先按章节读讲解和例题，再做练习；公式速查、易错点和术语对照可以随时翻。'
            '各页开头的出题频度来自 2005–2025 年试卷的统计，拿不准先看哪一章时，可以参考它，也可以直接看本页最后的频度表。')
-open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
+os.makedirs('physics', exist_ok=True)
+course_home = f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
 {HEADJS}
-<title>EJU 理科 物理 全专题讲解</title>{headmeta(SITE_NAME + " 全专题讲解", SITE_DESC, "", "")}
+<title>EJU 理科 物理 全专题讲解</title>{headmeta(SITE_NAME + " 全专题讲解", SITE_DESC, "physics/", "")}
 <link rel="stylesheet" href="assets/site.css"></head><body class="home contents">
 <a class="skip" href="#chapters">跳到目次</a>
 <div class="ct-wrap">
 <header class="ct-head">
-<div class="ct-top"><p class="ct-kicker">EJU 理科 · 物理</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
+<div class="ct-top"><p class="ct-kicker"><a href="https://eju.feather0.com/">四科总入口</a> ／ EJU 理科 · 物理</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
 <h1>物理<br>全专题讲解</h1>
 <div class="ct-preface"><p>{PREFACE}</p>
 <p class="ct-facts">共 {_nt} 个讲解专题、{_np} 道原创练习题、{_D["demo_count"]} 个互动演示；过去问 {_nb} 题已按专题归类。</p></div>
@@ -451,16 +452,19 @@ open('index.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="
 <p class="ct-intro">依据 2005–2025 年 38 份 EJU 试卷的按知识点分类原题册统计，按题数从多到少排列（各页开头另有详细的「出题频度」表）。</p>
 <div class="tw"><table><thead><tr><th scope="col">专题页</th><th scope="col">原题册专题</th><th scope="col" class="num">题数</th><th scope="col">重要度</th></tr></thead><tbody>{RANKTBL}</tbody></table></div></div></div></section>
 </main>
-<footer class="ct-foot"><p class="ct-sites">姊妹站：{"".join(f'<a href="{u}">{a}</a>' for u, a in _SITES)}</p><p>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</p></footer>
+<footer class="ct-foot"><p class="ct-sites">相关课程：{"".join(f'<a href="{u}">{a}</a>' for u, a in _SITES)}</p><p>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</p></footer>
 </div>
-{TOGGLEJS}<script src="assets/vendor/d3-eju.min.js"></script><script src="assets/map.js"></script><script src="assets/nav.js"></script></body></html>''')
+{TOGGLEJS}<script src="assets/vendor/d3-eju.min.js"></script><script src="assets/map.js"></script><script src="assets/nav.js"></script></body></html>'''
+# The existing lessons and shared assets are still served from the host root.
+course_home = course_home.replace('"assets/', '"/assets/').replace('"topics/', '"/topics/')
+open('physics/index.html','w').write(course_home)
 # 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
 open('404.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
 {HEADJS}<title>页面不存在 · {SITE_NAME}</title><meta name="robots" content="noindex"><link rel="icon" href="{SITE_PATH}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{SITE_PATH}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{SITE_PATH}assets/apple-touch-icon.png">
 <link rel="stylesheet" href="{SITE_PATH}assets/site.css"></head><body class="home nf"><main>
 <div class="home-top"><p class="eyebrow">{SITE_NAME}</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
 <p class="nf-code" aria-hidden="true">404</p><h1>页面不存在</h1><p>这个地址没有对应的页面：可能是链接写错了，或者页面已经移动。可以回到首页按专题查找，或用站内搜索。</p>
-<p class="home-links"><a href="{SITE_PATH}">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
+<p class="home-links"><a href="/physics/">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
 {TOGGLEJS}</body></html>''')
 nav=open('assets/nav.js').read().split('\n')
 T=[dict(n=t['n'],slug=t['slug'],zh=t['zh'],ja=t['ja'],ready=True) for t in TOPICS]

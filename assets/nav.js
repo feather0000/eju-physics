@@ -2,7 +2,7 @@
 var s=document.currentScript.src;var root=s.replace(/assets\/nav\.js.*$/,'');
 var here=location.pathname;
 var n=document.createElement('nav');n.className='eju-site-nav';
-var h='<details><summary>📚 EJU 物理 全部专题</summary><div class="eju-nav-list"><a href="'+root+'">🏠 目录</a>';
+var h='<details><summary>📚 EJU 物理 全部专题</summary><div class="eju-nav-list"><a href="'+root+'physics/">🏠 物理目录</a>';
 T.forEach(function(t){if(!t.ready){h+='<span style="opacity:.45">'+t.n+'. '+t.zh+'（制作中）</span>';return;}var u=root+(t.href||('topics/'+t.slug+'/'));var cur=here.indexOf(t.href||('/topics/'+t.slug+'/'))>=0;
 h+='<a href="'+u+'"'+(cur?' class="cur"':'')+'>'+t.n+'. '+t.zh+'</a>';});
 h+='</div></details>';h+='<form class="eju-q" role="search" action="'+root+'topics/search/"><input type="search" name="q" placeholder="🔍 搜索" aria-label="站内搜索" enterkeyhint="search"></form>';n.innerHTML=h;

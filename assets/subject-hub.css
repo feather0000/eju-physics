@@ -1,0 +1,32 @@
+:root{color-scheme:light;--paper:#f6f4ec;--ink:#202b27;--muted:#57645a;--line:#b8bdad}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:var(--paper);font-family:"Source Sans 3","Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+a{color:inherit;text-decoration:none} a:focus-visible{outline:3px solid #ad450d;outline-offset:4px}
+.skip{position:absolute;left:1rem;top:1rem;transform:translateY(-170%);padding:.6rem;background:white;z-index:2}.skip:focus{transform:none}
+.sheet{max-width:1330px;padding:0 clamp(22px,5.6vw,84px);margin:auto}
+.mast,.rule,footer,.title{display:flex;align-items:center;justify-content:space-between}
+.mast{min-height:74px;border-bottom:2px solid var(--ink);font-size:.85rem;letter-spacing:.1em}
+.brand{display:inline-flex;align-items:center;gap:9px;font:700 21px Georgia,serif;letter-spacing:-.04em}
+.brand b{display:grid;place-items:center;width:31px;height:31px;background:var(--ink);color:var(--paper);font:italic 26px/1 Georgia,serif}
+.brand span{border-left:1px solid var(--line);padding-left:10px;font:600 13px system-ui,sans-serif;letter-spacing:.07em}
+.intro{padding:clamp(36px,5vw,73px) 0 clamp(30px,4vw,62px)}
+.eyebrow{display:flex;align-items:center;gap:9px;font-size:.8rem;font-weight:650;letter-spacing:.16em;color:#435549}
+.eyebrow span{width:25px;border-top:2px solid #54705b}
+h1{font-family:"STIX Two Text","Songti SC","Noto Serif CJK SC","SimSun",serif;font-size:clamp(3rem,6.3vw,6rem);letter-spacing:-.055em;line-height:1.13;margin:.17em 0 .18em;font-weight:700}
+h1 i{font-family:"Baskerville","Georgia",serif;font-weight:500;letter-spacing:-.07em;margin-right:.055em}
+.intro p{margin:12px 0 0;max-width:48rem;color:var(--muted);font-size:clamp(.95rem,1.3vw,1.1rem);line-height:1.8}
+.rule{border-top:1px solid var(--ink);padding:13px 0 20px}.rule h2{margin:0;font-size:1rem;letter-spacing:.1em}.rule span{font-size:.74rem;letter-spacing:.05em;color:var(--muted)}
+.shelf{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,2vw,30px);align-items:stretch}
+.book{--tone:#684d7a;display:flex;flex-direction:column;border-bottom:1px solid var(--line);min-width:0}
+.physics{--tone:#285c79}.chemistry{--tone:#80502e}.biology{--tone:#3d6442}
+.plate{overflow:hidden;background:#e4e4d8;line-height:0}.plate img{width:100%;height:auto;transition:transform .25s}
+.title{gap:8px;margin:16px 0 7px;align-items:baseline}.title h3{margin:0;font:700 clamp(1.8rem,2.5vw,2.7rem)/1.2 "STIX Two Text","Songti SC","SimSun",serif;letter-spacing:-.04em}
+.title small{font:600 .68rem system-ui,sans-serif;letter-spacing:0;margin-left:6px;color:var(--tone)}
+.title span{color:var(--tone);font:normal 24px Georgia,serif}
+.course p{margin:0 0 12px;color:var(--muted);font-size:.91rem;line-height:1.75}
+.course:hover .plate img,.course:focus-visible .plate img{transform:scale(1.035)}.course:hover h3,.tool:hover{text-decoration:underline;text-underline-offset:4px}
+.tool{color:var(--tone);font-size:.82rem;font-weight:650;display:inline-flex;align-items:center;gap:.55em;align-self:flex-start;min-height:44px;margin-top:auto;margin-bottom:4px}
+footer{margin:clamp(36px,6vw,84px) 0 22px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:.74rem;line-height:1.7;gap:12px}
+@media(max-width:920px){.shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 18px}}
+@media(max-width:520px){.mast{min-height:58px}.sheet{padding:0 18px}.mast>span{font-size:.7rem}h1{font-size:clamp(2.65rem,10.8vw,3.4rem)}.intro{padding:33px 0}.intro p{font-size:.88rem}.rule{padding-bottom:15px}.shelf{gap:21px 13px}.title{margin:10px 0 5px}.title h3{font-size:1.7rem}.title small{font-size:.6rem;margin-left:3px}.title span{font-size:18px}.course p{font-size:.79rem;line-height:1.65}.tool{font-size:.73rem}footer{align-items:flex-start;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.plate img{transition:none}.course:hover .plate img,.course:focus-visible .plate img{transform:none}}

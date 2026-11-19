@@ -38,7 +38,7 @@ jobs:
             git checkout --detach FETCH_HEAD
             python3 build.py
             python3 verify.py
-            git add -- index.html 404.html topics assets/demos.js assets/nav.js assets/search.json
+            git add -- physics/index.html 404.html topics assets/demos.js assets/nav.js assets/search.json
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "Render updated EJU physics lessons"
             if git push origin HEAD:main; then exit 0; fi
