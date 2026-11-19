@@ -46,7 +46,7 @@ if _TIPS:
 HEADJS = """<script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="color-scheme"]'),t=null;try{t=localStorage.getItem('eju-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);if(m)m.content=t})()</script>"""
 TOGGLEJS = """<script>(function(){var d=document.documentElement,b=document.getElementById('theme');if(!b)return;function s(t){d.setAttribute('data-theme',t);var m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=t;b.textContent=t==='dark'?'浅色':'深色';b.setAttribute('aria-label',t==='dark'?'切换到浅色主题':'切换到深色主题')}s(d.getAttribute('data-theme')==='dark'?'dark':'light');b.onclick=function(){var t=d.getAttribute('data-theme')==='dark'?'light':'dark';s(t);try{localStorage.setItem('eju-theme',t)}catch(e){}};addEventListener('storage',function(e){if(e.key==='eju-theme'&&(e.newValue==='light'||e.newValue==='dark'))s(e.newValue)});var q=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)');if(q&&q.addEventListener)q.addEventListener('change',function(e){var v=null;try{v=localStorage.getItem('eju-theme')}catch(_){}if(v!=='light'&&v!=='dark')s(e.matches?'dark':'light')})})();</script>"""
 # SITE-META：每站主色（<html data-site>）、favicon、OG / Twitter 分享卡片（og:image 用绝对 URL）、共用交互脚本
-SITE = 'physics'; SITE_NAME = 'EJU 理科 物理'; SITE_PATH = '/eju-physics/'; SITE_URL = 'https://feather0000.github.io' + SITE_PATH
+SITE = 'physics'; SITE_NAME = 'EJU 理科 物理'; SITE_PATH = '/'; SITE_URL = 'https://eju.feather0.com/'
 SITE_DESC = '按 JASSO《日本留学試験 理科シラバス（物理）》编排：力学・热・波动・电磁气・原子。每页含要点讲解（中文 + 日语术语）、关键公式、原创例题和带解答的 EJU 风格选择题。'
 def headmeta(title, desc, path, root):
     t, d = html.escape(title), html.escape(html.unescape(desc))
@@ -462,7 +462,7 @@ open('404.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{S
 <p class="nf-code" aria-hidden="true">404</p><h1>页面不存在</h1><p>这个地址没有对应的页面：可能是链接写错了，或者页面已经移动。可以回到首页按专题查找，或用站内搜索。</p>
 <p class="home-links"><a href="{SITE_PATH}">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
 {TOGGLEJS}</body></html>''')
-nav=open('/workspace/eju-pages/assets/nav.js').read().split('\n')
+nav=open('assets/nav.js').read().split('\n')
 T=[dict(n=t['n'],slug=t['slug'],zh=t['zh'],ja=t['ja'],ready=True) for t in TOPICS]
 nav[0]='(function(){var T='+json.dumps(T,ensure_ascii=False)+';'
 nav='\n'.join(nav).replace('EJU コース2 全部专题','EJU 物理 全部专题').replace("(t.n==19?'19–20':t.n)","t.n")
