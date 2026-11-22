@@ -1,3 +1,4 @@
+/* Source repository: https://github.com/feather0000/eju-physics */
 /* EJU 物理 互动演示：纯物理公式（浏览器与 Node 测试共用） */
 (function (G) {
   'use strict';
