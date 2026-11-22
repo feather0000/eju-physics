@@ -141,13 +141,13 @@ def page(t):
     ch = AREA_CH.get(t['area'])
     if ch:
         kicker = f'EJU 物理 · 第 {ch} 章'
-        map_href = f'/physics/?ch={ch}#map'
+        map_href = f'{SITE_PATH}physics/?ch={ch}#map'
         map_lab = f'在知识导图中查看第 {ch} 章'
         map_cap = f'知识导图<span class="hero-map-dot"> · </span><span class="hero-map-ch">第 {ch} 章</span>'
         thumb = _map_thumb(t['slug'])
     else:
         kicker = f'EJU 物理 · {t["area"]}'
-        map_href = '/physics/#map'
+        map_href = f'{SITE_PATH}physics/#map'
         map_lab = '回到知识导图'
         map_cap = '知识导图'
         thumb = _map_thumb(None)
@@ -167,7 +167,7 @@ def page(t):
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/eju-ux.js"></script><script defer src="../../assets/demos.js?v=3"></script>
 <link rel="stylesheet" href="../../assets/site.css"></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
-<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="/physics/">← 物理目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
+<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="{SITE_PATH}physics/">← 物理目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
 <div class="layout"><nav class="toc" aria-label="目录"><div style="flex:1;min-width:0"><p class="toc-title">目录</p><ol>{tochtml}</ol></div><button class="chip theme-btn" id="theme" type="button">深色</button></nav>
 <main id="main">{secs}{demosec(t)}{EX}{PR}{TE}
 <footer>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</footer></main></div>
@@ -459,7 +459,7 @@ course_home = f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><
 </div>
 {TOGGLEJS}<script src="assets/vendor/d3-eju.min.js"></script><script src="assets/map.js"></script><script src="assets/nav.js"></script></body></html>'''
 # The existing lessons and shared assets are still served from the host root.
-course_home = course_home.replace('"assets/', '"/assets/').replace('"topics/', '"/topics/')
+course_home = course_home.replace('"assets/', f'"{SITE_PATH}assets/').replace('"topics/', f'"{SITE_PATH}topics/')
 open('physics/index.html','w').write(siteenv.with_banner(CFG, course_home, 'physics/'))
 # 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
 open('404.html','w').write(siteenv.with_banner(CFG, f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
@@ -467,7 +467,7 @@ open('404.html','w').write(siteenv.with_banner(CFG, f'''<!doctype html><html lan
 <link rel="stylesheet" href="{SITE_PATH}assets/site.css"></head><body class="home nf"><main>
 <div class="home-top"><p class="eyebrow">{SITE_NAME}</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
 <p class="nf-code" aria-hidden="true">404</p><h1>页面不存在</h1><p>这个地址没有对应的页面：可能是链接写错了，或者页面已经移动。可以回到首页按专题查找，或用站内搜索。</p>
-<p class="home-links"><a href="/physics/">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
+<p class="home-links"><a href="{SITE_PATH}physics/">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
 {TOGGLEJS}</body></html>''', ''))
 nav=open('assets/nav.js').read().split('\n')
 T=[dict(n=t['n'],slug=t['slug'],zh=t['zh'],ja=t['ja'],ready=True) for t in TOPICS]
@@ -480,3 +480,4 @@ from _x import build_index
 print('search index entries:',build_index(TOPICS))
 
 siteenv.write_robots(CFG)
+siteenv.finalize_tree(CFG)
