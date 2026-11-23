@@ -461,7 +461,7 @@ course_home = f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><
 # The existing lessons and shared assets are still served from the host root.
 course_home = course_home.replace('"assets/', f'"{SITE_PATH}assets/').replace('"topics/', f'"{SITE_PATH}topics/')
 open('physics/index.html','w').write(siteenv.with_banner(CFG, course_home, 'physics/'))
-# 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
+# 404：Cloudflare Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
 open('404.html','w').write(siteenv.with_banner(CFG, f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
 {HEADJS}<title>页面不存在 · {SITE_NAME}</title><meta name="robots" content="noindex"><link rel="icon" href="{SITE_PATH}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{SITE_PATH}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{SITE_PATH}assets/apple-touch-icon.png">
 <link rel="stylesheet" href="{SITE_PATH}assets/site.css"></head><body class="home nf"><main>
