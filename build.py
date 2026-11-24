@@ -46,7 +46,10 @@ if _TIPS:
 HEADJS = """<script>(function(){var d=document.documentElement,m=document.querySelector('meta[name="color-scheme"]'),t=null;try{t=localStorage.getItem('eju-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.setAttribute('data-theme',t);if(m)m.content=t})()</script>"""
 TOGGLEJS = """<script>(function(){var d=document.documentElement,b=document.getElementById('theme');if(!b)return;function s(t){d.setAttribute('data-theme',t);var m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=t;b.textContent=t==='dark'?'浅色':'深色';b.setAttribute('aria-label',t==='dark'?'切换到浅色主题':'切换到深色主题')}s(d.getAttribute('data-theme')==='dark'?'dark':'light');b.onclick=function(){var t=d.getAttribute('data-theme')==='dark'?'light':'dark';s(t);try{localStorage.setItem('eju-theme',t)}catch(e){}};addEventListener('storage',function(e){if(e.key==='eju-theme'&&(e.newValue==='light'||e.newValue==='dark'))s(e.newValue)});var q=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)');if(q&&q.addEventListener)q.addEventListener('change',function(e){var v=null;try{v=localStorage.getItem('eju-theme')}catch(_){}if(v!=='light'&&v!=='dark')s(e.matches?'dark':'light')})})();</script>"""
 # SITE-META：每站主色（<html data-site>）、favicon、OG / Twitter 分享卡片（og:image 用绝对 URL）、共用交互脚本
-SITE = 'physics'; SITE_NAME = 'EJU 理科 物理'; SITE_PATH = '/'; SITE_URL = 'https://eju.feather0.com/'
+import siteenv
+CFG = siteenv.load('physics')
+SITE = 'physics'; SITE_NAME = 'EJU 理科 物理'; SITE_PATH = CFG.site_path; SITE_URL = CFG.site_url
+
 SITE_DESC = '按 JASSO《日本留学試験 理科シラバス（物理）》编排：力学・热・波动・电磁气・原子。每页含要点讲解（中文 + 日语术语）、关键公式、原创例题和带解答的 EJU 风格选择题。'
 def headmeta(title, desc, path, root):
     t, d = html.escape(title), html.escape(html.unescape(desc))
@@ -54,7 +57,7 @@ def headmeta(title, desc, path, root):
             f'<link rel="icon" href="{root}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{root}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{root}assets/apple-touch-icon.png">\n'
             f'<meta property="og:type" content="website"><meta property="og:site_name" content="{SITE_NAME}"><meta property="og:locale" content="zh_CN"><meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{SITE_URL}{path}">'
             f'<meta property="og:image" content="{SITE_URL}assets/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="{SITE_NAME} · 全专题中文讲义">'
-            f'<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{t}"><meta name="twitter:description" content="{d}"><meta name="twitter:image" content="{SITE_URL}assets/og.png">\n')
+            f'<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{t}"><meta name="twitter:description" content="{d}"><meta name="twitter:image" content="{SITE_URL}assets/og.png">\n' + siteenv.extra_meta(CFG, path))
 CHAPTERS = [  # area：日文名、一句章节提要
  ('力学', '力学', '从运动学到万有引力：受力分析、能量与动量守恒、圆周运动与简谐振动。'),
  ('热', '熱', '比热与热平衡、理想气体状态方程、热力学第一定律与热机效率。'),
@@ -138,13 +141,13 @@ def page(t):
     ch = AREA_CH.get(t['area'])
     if ch:
         kicker = f'EJU 物理 · 第 {ch} 章'
-        map_href = f'/physics/?ch={ch}#map'
+        map_href = f'{SITE_PATH}physics/?ch={ch}#map'
         map_lab = f'在知识导图中查看第 {ch} 章'
         map_cap = f'知识导图<span class="hero-map-dot"> · </span><span class="hero-map-ch">第 {ch} 章</span>'
         thumb = _map_thumb(t['slug'])
     else:
         kicker = f'EJU 物理 · {t["area"]}'
-        map_href = '/physics/#map'
+        map_href = f'{SITE_PATH}physics/#map'
         map_lab = '回到知识导图'
         map_cap = '知识导图'
         thumb = _map_thumb(None)
@@ -164,7 +167,7 @@ def page(t):
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script defer src="../../assets/lazy-katex.js"></script><script defer src="../../assets/eju-ux.js"></script><script defer src="../../assets/demos.js?v=3"></script>
 <link rel="stylesheet" href="../../assets/site.css"></head><body>
 <a class="skip" href="#main">跳到正文</a><div id="cdn-note" hidden>公式库（KaTeX）未能加载，公式将显示为源码。请联网后刷新页面。</div>
-<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="/physics/">← 物理目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
+<header class="hero"><div class="hero-in"><div class="hero-text"><p class="back"><a href="{SITE_PATH}physics/">← 物理目录</a></p><p class="eyebrow">{kicker}</p><h1>{t["zh"]}</h1><p class="hero-ja" lang="ja">{t["ja"]}</p><hr class="hero-rule" /><p class="lead">{t["lead"]}</p></div>{hero_aside}</div></header>
 <div class="layout"><nav class="toc" aria-label="目录"><div style="flex:1;min-width:0"><p class="toc-title">目录</p><ol>{tochtml}</ol></div><button class="chip theme-btn" id="theme" type="button">深色</button></nav>
 <main id="main">{secs}{demosec(t)}{EX}{PR}{TE}
 <footer>原创讲义与题目，非 JASSO 官方内容。按《日本留学試験 理科シラバス（物理）》编排。</footer></main></div>
@@ -173,7 +176,7 @@ var L=[].slice.call(document.querySelectorAll('nav.toc a'));if('IntersectionObse
 window.addEventListener('load',function(){{if(!window.renderMathInElement){{document.getElementById('cdn-note').hidden=false;return}}renderMathInElement(document.body,{{delimiters:[{{left:'$$',right:'$$',display:true}},{{left:'$',right:'$',display:false}}],throwOnError:false}})}})}})();</script>
 <script src="../../assets/nav.js"></script></body></html>'''
 for t in TOPICS:
-    os.makedirs(f'topics/{t["slug"]}',exist_ok=True); open(f'topics/{t["slug"]}/index.html','w').write(page(t))
+    os.makedirs(f'topics/{t["slug"]}',exist_ok=True); open(f'topics/{t["slug"]}/index.html','w').write(siteenv.with_banner(CFG, page(t), f'topics/{t["slug"]}/'))
 # HOME：首页目次（像书的目录：左侧章号，右侧章名与专题，点线引到右侧的题数・过去问・星级；附录列资料与工具；最后是过去问频度表）。样式在 site.css 末尾「首页目次」块，无脚本
 def _stars(s): return f'<span class="stars" aria-label="重要度 {len(s)}/3">{s}</span>'
 def _entry(t, label=None, meta=None):
@@ -456,16 +459,16 @@ course_home = f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><
 </div>
 {TOGGLEJS}<script src="assets/vendor/d3-eju.min.js"></script><script src="assets/map.js"></script><script src="assets/nav.js"></script></body></html>'''
 # The existing lessons and shared assets are still served from the host root.
-course_home = course_home.replace('"assets/', '"/assets/').replace('"topics/', '"/topics/')
-open('physics/index.html','w').write(course_home)
-# 404：GitHub Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
-open('404.html','w').write(f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
+course_home = course_home.replace('"assets/', f'"{SITE_PATH}assets/').replace('"topics/', f'"{SITE_PATH}topics/')
+open('physics/index.html','w').write(siteenv.with_banner(CFG, course_home, 'physics/'))
+# 404：Cloudflare Pages 对任意深度的不存在路径都返回它，所以资源用站点绝对路径
+open('404.html','w').write(siteenv.with_banner(CFG, f'''<!doctype html><html lang="zh-Hans" data-site="{SITE}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
 {HEADJS}<title>页面不存在 · {SITE_NAME}</title><meta name="robots" content="noindex"><link rel="icon" href="{SITE_PATH}assets/favicon.svg" type="image/svg+xml"><link rel="icon" href="{SITE_PATH}assets/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="{SITE_PATH}assets/apple-touch-icon.png">
 <link rel="stylesheet" href="{SITE_PATH}assets/site.css"></head><body class="home nf"><main>
 <div class="home-top"><p class="eyebrow">{SITE_NAME}</p><button class="chip theme-btn" id="theme" type="button">深色</button></div>
 <p class="nf-code" aria-hidden="true">404</p><h1>页面不存在</h1><p>这个地址没有对应的页面：可能是链接写错了，或者页面已经移动。可以回到首页按专题查找，或用站内搜索。</p>
-<p class="home-links"><a href="/physics/">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
-{TOGGLEJS}</body></html>''')
+<p class="home-links"><a href="{SITE_PATH}physics/">← 回到 {SITE_NAME} 首页</a><a href="{SITE_PATH}topics/search/">站内搜索</a></p></main>
+{TOGGLEJS}</body></html>''', ''))
 nav=open('assets/nav.js').read().split('\n')
 T=[dict(n=t['n'],slug=t['slug'],zh=t['zh'],ja=t['ja'],ready=True) for t in TOPICS]
 nav[0]='(function(){var T='+json.dumps(T,ensure_ascii=False)+';'
@@ -475,3 +478,6 @@ print(len(TOPICS),'topics',sum(len(t['problems']) for t in TOPICS),'problems')
 
 from _x import build_index
 print('search index entries:',build_index(TOPICS))
+
+siteenv.write_robots(CFG)
+siteenv.finalize_tree(CFG)
